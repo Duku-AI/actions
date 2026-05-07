@@ -6,14 +6,14 @@ inputs:
   api-url:
     description: 'Platform API GraphQL endpoint URL'
     required: false
-    default: 'http://localhost:4000/graphql'
+    default: 'https://api.duku.ai/graphql'
 
   api-key:
     description: 'Platform API key (generate in Viewport Settings > API Keys)'
     required: true
 
   auth-url:
-    description: 'Authentication server URL (defaults to deriving from api-url by using the same host with port 8180)'
+    description: 'Authentication server URL (defaults to deriving from api-url by replacing the api. host prefix with auth. and dropping the path)'
     required: false
     default: ''
 
@@ -74,26 +74,6 @@ inputs:
 
   preview-url-regex:
     description: "Optional JavaScript regex (without slashes) to extract the preview URL from provider text (used by the comments resolver; capture group 1 preferred). If empty, the comments resolver uses a safe generic URL heuristic."
-    required: false
-    default: ''
-
-  use-vercel-preview-url:
-    description: "When start-run=true on a pull_request, wait for Vercel's bot comment and use the Preview deployment URL as the exploration URL (only if exploration-url is not set)"
-    required: false
-    default: 'false'
-
-  vercel-preview-timeout-seconds:
-    description: 'How long to wait for the Vercel preview URL to appear in PR comments (only used when use-vercel-preview-url=true)'
-    required: false
-    default: '60'
-
-  vercel-preview-poll-interval-seconds:
-    description: 'How frequently to poll PR comments for the Vercel preview URL (only used when use-vercel-preview-url=true)'
-    required: false
-    default: '5'
-
-  vercel-preview-url-regex:
-    description: "Optional JavaScript regex (without slashes) to extract the preview URL from the Vercel bot comment body (if empty, uses the first *.vercel.app URL)"
     required: false
     default: ''
 

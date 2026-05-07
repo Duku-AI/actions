@@ -54,22 +54,18 @@ A reusable GitHub Action that creates simulation targets in the Platform API for
 |------|----------|---------|-------------|
 | `api-key` | Yes | - | Platform API authentication token |
 | `subject-id` | Yes | - | Simulation subject ID |
-| `api-url` | No | `http://localhost:4000/graphql` | Platform API GraphQL endpoint URL |
+| `api-url` | No | `https://api.duku.ai/graphql` | Platform API GraphQL endpoint URL |
 | `start-run` | No | `false` | Start an exploration run via `startExploration` after creating the target |
 | `vercel-automation-bypass-secret` | No | *(empty)* | Stores `target.metadata.vercelAutomationBypassSecret` for Vercel Deployment Protection bypass (worker sends `x-vercel-protection-bypass`) |
 | `exploration-url` | No | *(empty)* | Override the URL to explore (defaults to subject `baseUrl`) |
 | `preview-url-source` | No | `auto` | When `start-run=true` on a PR and `exploration-url` is not set, resolve the preview URL from GitHub using Deployments/Checks/Statuses/Comments |
-| `preview-timeout-seconds` | No | *(empty)* | How long to wait for the preview URL to appear (polling-based resolvers like comments). If omitted, falls back to `vercel-preview-timeout-seconds` or `60` |
-| `preview-poll-interval-seconds` | No | *(empty)* | How frequently to poll for the preview URL (polling-based resolvers like comments). If omitted, falls back to `vercel-preview-poll-interval-seconds` or `5` |
+| `preview-timeout-seconds` | No | *(empty)* | How long to wait for the preview URL to appear (polling-based resolvers like comments). Defaults to `60` |
+| `preview-poll-interval-seconds` | No | *(empty)* | How frequently to poll for the preview URL (polling-based resolvers like comments). Defaults to `5` |
 | `preview-deployment-environment-regex` | No | *(empty)* | Regex to match a GitHub Deployment environment (Deployments resolver). Defaults to `preview|review|staging|pr` |
 | `preview-check-name-regex` | No | *(empty)* | Regex to match a Check Run name (Checks resolver). If omitted, checks are skipped in `auto` |
 | `preview-status-context-regex` | No | *(empty)* | Regex to match a commit status context (Statuses resolver). If omitted, statuses are skipped in `auto` |
 | `preview-comment-author-logins` | No | *(empty)* | Comma-separated bot/user logins to scan in PR comments (Comments resolver), e.g. `vercel[bot],netlify[bot]` |
 | `preview-url-regex` | No | *(empty)* | Regex to extract the preview URL from provider text (Comments resolver). If omitted, uses a generic `http(s)` URL heuristic |
-| `use-vercel-preview-url` | No | `false` | When `start-run=true` on a PR, wait for the Vercel bot comment and use its Preview deployment URL as the exploration URL (only if `exploration-url` is not set) |
-| `vercel-preview-timeout-seconds` | No | `60` | How long to wait for the Vercel preview URL to appear in PR comments |
-| `vercel-preview-poll-interval-seconds` | No | `5` | How frequently to poll PR comments for the Vercel preview URL |
-| `vercel-preview-url-regex` | No | *(empty)* | Optional JavaScript regex (without slashes) to extract the preview URL from the Vercel bot comment. If omitted, uses the first `*.vercel.app` URL |
 
 ## Outputs
 
@@ -85,7 +81,7 @@ A reusable GitHub Action that creates simulation targets in the Platform API for
 
 This action does **not** require `GITHUB_TOKEN` to post results comments.
 
-If you enable preview URL resolution (e.g. `preview-url-source=auto` or `use-vercel-preview-url=true`), the action reads GitHub data for the PR using the workflow-provided `GITHUB_TOKEN`.
+If you enable preview URL resolution (e.g. `preview-url-source=auto`), the action reads GitHub data for the PR using the workflow-provided `GITHUB_TOKEN`.
 
 ## Repository Secrets Setup
 
@@ -114,7 +110,7 @@ Platform posts the final results comment using the **Duku AI GitHub App**, not `
 
 ## Vercel Preview URL (PRs)
 
-If your repo uses the Vercel GitHub integration, you can have Platform explore the PR preview deployment by enabling `use-vercel-preview-url`.
+If your repo uses the Vercel GitHub integration, point the comments resolver at the Vercel bot to pick up the preview deployment URL it posts on the PR:
 
 ```yaml
 - name: Create Platform Target
@@ -123,11 +119,14 @@ If your repo uses the Vercel GitHub integration, you can have Platform explore t
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     subject-id: ${{ secrets.PLATFORM_SUBJECT_ID }}
     start-run: 'true'
-    use-vercel-preview-url: 'true'
+    preview-url-source: 'comments'
+    preview-comment-author-logins: 'vercel[bot]'
     # Optional tuning:
-    # vercel-preview-timeout-seconds: '60'
-    # vercel-preview-poll-interval-seconds: '5'
+    # preview-timeout-seconds: '60'
+    # preview-poll-interval-seconds: '5'
 ```
+
+`preview-url-source: 'auto'` (the default) also picks up Vercel preview URLs via GitHub Deployments first, falling back to comments — usually the right choice unless your Vercel project doesn't publish a Deployment.
 
 ## Complete Workflow Template
 

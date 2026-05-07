@@ -39,7 +39,7 @@ function extractFirstHttpUrlFromText(body: string): string | null {
   return trimTrailingUrlPunctuation(matches[0]);
 }
 
-function extractUrlFromText(body: string, urlRegexRaw: string, fallbackMode: 'vercel-default' | 'generic'): string | null {
+function extractUrlFromText(body: string, urlRegexRaw: string): string | null {
   if (!body) return null;
 
   const re = parseOptionalRegex(urlRegexRaw, 'preview-url-regex');
@@ -48,12 +48,6 @@ function extractUrlFromText(body: string, urlRegexRaw: string, fallbackMode: 've
     if (!match) return null;
     const candidate = (match[1] || match[0] || '').toString();
     return trimTrailingUrlPunctuation(candidate);
-  }
-
-  if (fallbackMode === 'vercel-default') {
-    const matches = body.match(/https?:\/\/[^\s)<"]+\.vercel\.app[^\s)<"]*/gi);
-    if (!matches?.length) return null;
-    return trimTrailingUrlPunctuation(matches[0]);
   }
 
   return extractFirstHttpUrlFromText(body);
@@ -73,7 +67,10 @@ interface ApiKeyCredentials {
 
 function deriveKeycloakUrl(apiUrl: string): string {
   const url = new URL(apiUrl);
-  return `${url.protocol}//${url.hostname}:8180`;
+  const host = url.hostname.startsWith('api.')
+    ? 'auth.' + url.hostname.slice('api.'.length)
+    : url.hostname;
+  return `${url.protocol}//${host}`;
 }
 
 function decodeApiKey(apiKey: string): ApiKeyCredentials {
@@ -156,71 +153,6 @@ async function exchangeApiKeyForToken(opts: {
     expiresIn: json.expires_in || 300,
     tokenType: json.token_type || 'Bearer',
   };
-}
-
-function extractVercelPreviewUrlFromText(body: string, urlRegexRaw: string): string | null {
-  if (!body) return null;
-
-  if (urlRegexRaw) {
-    let re: RegExp;
-    try {
-      re = new RegExp(urlRegexRaw, 'i');
-    } catch (e) {
-      throw new Error(
-        `Invalid vercel-preview-url-regex: '${urlRegexRaw}'. Provide a valid JavaScript regex pattern (without / /).`
-      );
-    }
-    const match = body.match(re);
-    if (!match) return null;
-    // If there's a capture group, prefer it; otherwise use full match
-    const candidate = match[1] || match[0];
-    return trimTrailingUrlPunctuation(candidate);
-  }
-
-  // Default heuristic: first *.vercel.app URL in the comment body
-  const matches = body.match(/https?:\/\/[^\s)<"]+\.vercel\.app[^\s)<"]*/gi);
-  if (!matches?.length) return null;
-  return trimTrailingUrlPunctuation(matches[0]);
-}
-
-async function resolveVercelPreviewUrlFromPrComments(opts: {
-  octokit: ReturnType<typeof github.getOctokit>;
-  owner: string;
-  repo: string;
-  prNumber: number;
-  timeoutMs: number;
-  pollIntervalMs: number;
-  urlRegexRaw: string;
-}): Promise<string | null> {
-  const deadline = Date.now() + opts.timeoutMs;
-
-  while (Date.now() < deadline) {
-    const comments = await (opts.octokit as any).paginate(
-      (opts.octokit as any).rest.issues.listComments,
-      {
-        owner: opts.owner,
-        repo: opts.repo,
-        issue_number: opts.prNumber,
-        per_page: 100
-      }
-    ) as Array<{
-      body?: string | null;
-      user?: { login?: string | null } | null;
-    }>;
-
-    // Scan newest → oldest
-    for (let i = comments.length - 1; i >= 0; i--) {
-      const c = comments[i];
-      const login = (c.user?.login || '').toLowerCase();
-      if (login !== 'vercel[bot]' && login !== 'vercel') continue;
-      const url = extractVercelPreviewUrlFromText(c.body || '', opts.urlRegexRaw);
-      if (url) return url;
-    }
-
-    await sleep(opts.pollIntervalMs);
-  }
-
-  return null;
 }
 
 async function resolvePreviewUrlFromDeployments(opts: {
@@ -386,7 +318,7 @@ async function resolvePreviewUrlFromPrCommentsGeneric(opts: {
       const c = comments[i];
       const login = (c.user?.login || '').toLowerCase();
       if (!allow.has(login)) continue;
-      const url = extractUrlFromText(c.body || '', opts.urlRegexRaw, 'generic');
+      const url = extractUrlFromText(c.body || '', opts.urlRegexRaw);
       if (url) return url;
     }
 
@@ -412,9 +344,6 @@ async function resolvePreviewUrl(opts: {
   statusContextRegexRaw: string;
   commentAuthorLogins: string[];
   commentUrlRegexRaw: string;
-  // Back-compat toggles
-  useVercelPreviewUrl: boolean;
-  vercelPreviewUrlRegex: string;
 }): Promise<string | null> {
   const failOpen = async (label: string, fn: () => Promise<string | null>): Promise<string | null> => {
     try {
@@ -424,18 +353,6 @@ async function resolvePreviewUrl(opts: {
       core.warning(`Preview URL resolver '${label}' failed (will continue): ${msg}`);
       return null;
     }
-  };
-
-  const runVercelComments = async (): Promise<string | null> => {
-    return resolveVercelPreviewUrlFromPrComments({
-      octokit: opts.octokit,
-      owner: opts.owner,
-      repo: opts.repo,
-      prNumber: opts.prNumber,
-      timeoutMs: opts.timeoutMs,
-      pollIntervalMs: opts.pollIntervalMs,
-      urlRegexRaw: opts.vercelPreviewUrlRegex
-    });
   };
 
   const runGenericComments = async (): Promise<string | null> => {
@@ -485,13 +402,7 @@ async function resolvePreviewUrl(opts: {
   if (opts.source === 'deployments') return failOpen('deployments', runDeployments);
   if (opts.source === 'checks') return failOpen('checks', runChecks);
   if (opts.source === 'statuses') return failOpen('statuses', runStatuses);
-  if (opts.source === 'comments') {
-    // Prefer explicit config; otherwise fall back to the legacy Vercel toggle.
-    const fromGeneric = await failOpen('comments', runGenericComments);
-    if (fromGeneric) return fromGeneric;
-    if (opts.useVercelPreviewUrl) return failOpen('vercel-comments', runVercelComments);
-    return null;
-  }
+  if (opts.source === 'comments') return failOpen('comments', runGenericComments);
 
   // auto
   const d = await failOpen('deployments', runDeployments);
@@ -500,10 +411,7 @@ async function resolvePreviewUrl(opts: {
   if (c) return c;
   const s = await failOpen('statuses', runStatuses);
   if (s) return s;
-  const g = await failOpen('comments', runGenericComments);
-  if (g) return g;
-  if (opts.useVercelPreviewUrl) return failOpen('vercel-comments', runVercelComments);
-  return null;
+  return failOpen('comments', runGenericComments);
 }
 
 const UPSERT_TARGET_MUTATION = `
@@ -574,11 +482,6 @@ async function run(): Promise<void> {
     const previewStatusContextRegex = core.getInput('preview-status-context-regex').trim();
     const previewCommentAuthorLoginsRaw = core.getInput('preview-comment-author-logins').trim();
     const previewUrlRegex = core.getInput('preview-url-regex').trim();
-
-    const useVercelPreviewUrl = core.getInput('use-vercel-preview-url') === 'true';
-    const vercelPreviewTimeoutSecondsRaw = core.getInput('vercel-preview-timeout-seconds').trim();
-    const vercelPreviewPollIntervalSecondsRaw = core.getInput('vercel-preview-poll-interval-seconds').trim();
-    const vercelPreviewUrlRegex = core.getInput('vercel-preview-url-regex').trim();
 
     // Auto-populate build context from GitHub environment
     const runNumber = process.env.GITHUB_RUN_NUMBER;
@@ -741,9 +644,8 @@ async function run(): Promise<void> {
         if (!process.env.GITHUB_TOKEN) {
           core.warning('No GITHUB_TOKEN is set; cannot resolve preview URL via GitHub APIs. Falling back to subject baseUrl.');
         } else {
-          // For backwards compatibility: if users set the Vercel-specific timeout/interval, honor them.
-          const timeoutSecondsRaw = (previewTimeoutSecondsRaw || vercelPreviewTimeoutSecondsRaw || '60').trim();
-          const pollIntervalSecondsRaw = (previewPollIntervalSecondsRaw || vercelPreviewPollIntervalSecondsRaw || '5').trim();
+          const timeoutSecondsRaw = (previewTimeoutSecondsRaw || '60').trim();
+          const pollIntervalSecondsRaw = (previewPollIntervalSecondsRaw || '5').trim();
           const timeoutSeconds = Math.max(1, parseInt(timeoutSecondsRaw, 10));
           const pollIntervalSeconds = Math.max(1, parseInt(pollIntervalSecondsRaw, 10));
           const timeoutMs = timeoutSeconds * 1000;
@@ -754,8 +656,6 @@ async function run(): Promise<void> {
           const commentAuthorLogins = previewCommentAuthorLoginsRaw
             ? previewCommentAuthorLoginsRaw.split(',').map(s => s.trim()).filter(Boolean)
             : [];
-
-          const legacyVercelEnabled = useVercelPreviewUrl;
 
           core.info(`Resolving preview URL (source='${previewUrlSource}', timeout=${timeoutSeconds}s)...`);
           resolvedPreviewUrl = await resolvePreviewUrl({
@@ -772,13 +672,11 @@ async function run(): Promise<void> {
             statusContextRegexRaw: previewStatusContextRegex,
             commentAuthorLogins,
             commentUrlRegexRaw: previewUrlRegex,
-            useVercelPreviewUrl: legacyVercelEnabled,
-            vercelPreviewUrlRegex
           });
 
           if (resolvedPreviewUrl) {
             core.info(`Using preview URL: ${resolvedPreviewUrl}`);
-          } else if (legacyVercelEnabled || previewUrlSource !== 'none') {
+          } else if (previewUrlSource !== 'none') {
             core.warning(`Preview URL not found; falling back to subject baseUrl.`);
           }
         }
