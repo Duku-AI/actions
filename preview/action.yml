@@ -6,14 +6,14 @@ inputs:
   api-url:
     description: 'Platform API GraphQL endpoint URL'
     required: false
-    default: 'https://api.duku.ai/graphql'
+    default: 'https://platform.duku.ai/graphql'
 
   api-key:
     description: 'Platform API key (generate in Viewport Settings > API Keys)'
     required: true
 
   auth-url:
-    description: 'Authentication server URL (defaults to deriving from api-url by replacing the api. host prefix with auth. and dropping the path)'
+    description: 'Authentication server URL (defaults to deriving from api-url by replacing the platform. host prefix with auth. and dropping the path)'
     required: false
     default: ''
 

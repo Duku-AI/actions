@@ -67,8 +67,8 @@ interface ApiKeyCredentials {
 
 function deriveKeycloakUrl(apiUrl: string): string {
   const url = new URL(apiUrl);
-  const host = url.hostname.startsWith('api.')
-    ? 'auth.' + url.hostname.slice('api.'.length)
+  const host = url.hostname.startsWith('platform.')
+    ? 'auth.' + url.hostname.slice('platform.'.length)
     : url.hostname;
   return `${url.protocol}//${host}`;
 }

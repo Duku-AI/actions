@@ -54,7 +54,7 @@ A reusable GitHub Action that creates simulation targets in the Platform API for
 |------|----------|---------|-------------|
 | `api-key` | Yes | - | Platform API authentication token |
 | `subject-id` | Yes | - | Simulation subject ID |
-| `api-url` | No | `https://api.duku.ai/graphql` | Platform API GraphQL endpoint URL |
+| `api-url` | No | `https://platform.duku.ai/graphql` | Platform API GraphQL endpoint URL |
 | `start-run` | No | `false` | Start an exploration run via `startExploration` after creating the target |
 | `vercel-automation-bypass-secret` | No | *(empty)* | Stores `target.metadata.vercelAutomationBypassSecret` for Vercel Deployment Protection bypass (worker sends `x-vercel-protection-bypass`) |
 | `exploration-url` | No | *(empty)* | Override the URL to explore (defaults to subject `baseUrl`) |
