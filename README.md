@@ -22,7 +22,7 @@ Customers should pin to an immutable version tag (recommended) or to the floatin
 
 ## Source of truth
 
-This repo is **read-only**. Its full content is mirrored from the private `Duku-AI/chrome-worker` monorepo under `actions-repo/`, pushed here on every monorepo `main` commit that touches that directory. Hand-edits will be overwritten on the next sync.
+This repo is **read-only**. Each action's `action.yml`, bundled `dist/`, and docs are mirrored from the private `Duku-AI/chrome-worker` monorepo under `actions-repo/`, pushed here on every monorepo `main` commit that touches that directory. The TypeScript sources, `package.json`, and build config live only in chrome-worker. Hand-edits to this repo will be overwritten on the next sync.
 
 ## Releases (maintainers)
 
