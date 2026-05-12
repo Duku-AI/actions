@@ -1,0 +1,25 @@
+# Minimal push-trigger example for the duku-ai/actions/environment action.
+# Copy into .github/workflows/ in your repo and adjust the branches list
+# and target-id variable to match your setup.
+
+name: Duku environment
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: duku-env-${{ vars.DUKU_STAGING_TARGET_ID }}
+  cancel-in-progress: false
+
+jobs:
+  explore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: duku-ai/actions/environment@environment/v0.1.0
+        with:
+          api-key: ${{ secrets.PLATFORM_API_KEY }}
+          target-id: ${{ vars.DUKU_STAGING_TARGET_ID }}

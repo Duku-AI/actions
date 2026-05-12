@@ -1,0 +1,43 @@
+name: 'Duku Environment'
+description: 'Triggers a Duku exploration against a pre-created environment target'
+author: 'Duku AI'
+
+inputs:
+  api-key:
+    description: 'Platform API key (generate in Viewport Settings → API Keys)'
+    required: true
+
+  target-id:
+    description: 'Pre-created environment target ID from Viewport'
+    required: true
+
+  url:
+    description: 'Override the URL to explore (defaults to the target subject baseUrl)'
+    required: false
+    default: ''
+
+  api-url:
+    description: 'Platform API GraphQL endpoint URL'
+    required: false
+    default: 'https://platform.duku.ai/graphql'
+
+  auth-url:
+    description: 'Authentication server URL (defaults to deriving from api-url by replacing the platform. host prefix with auth.)'
+    required: false
+    default: ''
+
+  github-installation-id:
+    description: 'GitHub App installation ID for Check Runs / PR error reporting (optional)'
+    required: false
+    default: ''
+
+outputs:
+  run-id:
+    description: 'ID of the started exploration run'
+
+  run-status:
+    description: 'Status of the started exploration run'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

@@ -1,0 +1,57 @@
+{
+  "name": "duku-actions-environment",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "actions-repo/environment/src",
+  "projectType": "application",
+  "tags": ["type:github-action", "scope:integrations"],
+  "implicitDependencies": ["duku-actions-shared"],
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run lint --prefix actions-repo/environment"
+      },
+      "cache": true,
+      "dependsOn": [],
+      "inputs": [
+        "{projectRoot}/src/**/*.ts",
+        "{projectRoot}/tsconfig.json",
+        "{projectRoot}/package.json",
+        "{projectRoot}/package-lock.json",
+        "^default",
+        "sharedGlobals"
+      ],
+      "outputs": []
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm test --prefix actions-repo/environment"
+      },
+      "cache": true,
+      "dependsOn": ["lint"],
+      "inputs": [
+        "{projectRoot}/src/**/*.ts",
+        "{projectRoot}/tsconfig.json",
+        "{projectRoot}/package.json",
+        "{projectRoot}/package-lock.json",
+        "{projectRoot}/vitest.config.ts",
+        "^default",
+        "sharedGlobals"
+      ],
+      "outputs": []
+    },
+    "docker-build": {
+      "options": { "command": "echo 'No docker build for github action'" },
+      "dependsOn": [],
+      "outputs": [],
+      "cache": false
+    },
+    "docker-push": {
+      "options": { "command": "echo 'No docker push for github action'" },
+      "dependsOn": [],
+      "outputs": [],
+      "cache": false
+    }
+  }
+}

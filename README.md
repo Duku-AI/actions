@@ -7,6 +7,7 @@ Reusable GitHub Actions published by [Duku AI](https://duku.ai) for integrating 
 | Action | Status | Description |
 |---|---|---|
 | [`preview/`](./preview) | _pre-release_ | Reports a deployed preview URL to the Duku platform for evaluation. |
+| [`environment/`](./environment) | _pre-release_ | Triggers an exploration against a pre-created environment target on push / schedule / workflow_dispatch. |
 
 ## Pinning
 
