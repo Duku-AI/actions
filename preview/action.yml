@@ -81,6 +81,26 @@ inputs:
     description: 'GitHub App installation ID for PR error reporting (optional)'
     required: false
 
+  exploration-poll-timeout-seconds:
+    description: 'Max seconds to wait for exploration to reach a terminal status when running on a pull_request'
+    required: false
+    default: '2400'
+
+  exploration-poll-interval-seconds:
+    description: 'Seconds between exploration status polls when running on a pull_request'
+    required: false
+    default: '15'
+
+  github-token:
+    description: 'GitHub token used to post/update the sticky PR comment (defaults to GITHUB_TOKEN env)'
+    required: false
+    default: ''
+
+  dashboard-url:
+    description: 'Base URL of the Platform dashboard, used to build batch links in the sticky comment'
+    required: false
+    default: ''
+
 outputs:
   target-id:
     description: 'ID of the created target'
@@ -96,6 +116,15 @@ outputs:
 
   run-status:
     description: 'Status of the started simulation run (if start-run is true)'
+
+  exploration-batch-id:
+    description: 'ID of the exploration batch (when orchestrated on a pull_request)'
+
+  exploration-status:
+    description: 'Terminal status of the exploration batch (when orchestrated on a pull_request)'
+
+  comment-id:
+    description: 'ID of the sticky PR comment (when orchestrated on a pull_request)'
 
 runs:
   using: 'node20'
