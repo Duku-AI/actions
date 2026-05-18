@@ -1,5 +1,5 @@
 name: 'Duku Environment'
-description: 'Triggers a Duku exploration against a pre-created environment target'
+description: 'Triggers a Duku exploration (and test cases) against a pre-created environment target. The action kicks off the exploration and exits — terminal results appear in Viewport. Intended for push / schedule / workflow_dispatch.'
 author: 'Duku AI'
 
 inputs:
@@ -12,7 +12,7 @@ inputs:
     required: true
 
   url:
-    description: 'Override the URL to explore (defaults to the target subject baseUrl)'
+    description: 'Override the URL to explore (defaults to the target buildUrl)'
     required: false
     default: ''
 
@@ -27,16 +27,40 @@ inputs:
     default: ''
 
   github-installation-id:
-    description: 'GitHub App installation ID for Check Runs / PR error reporting (optional)'
+    description: 'GitHub App installation ID for PR error reporting (optional; the server can auto-discover the installation when the Duku GitHub App is installed on the repo)'
+    required: false
+    default: ''
+
+  github-token:
+    description: 'GitHub token used to post a sticky "running" PR comment when this action is invoked on a pull_request event. Falls back to GITHUB_TOKEN from env if unset. Not used on push / schedule / workflow_dispatch.'
+    required: false
+    default: ''
+
+  test-runs-per-path:
+    description: 'Optional override for runs per path on runAllTestCases'
+    required: false
+    default: ''
+
+  test-paths-per-goal:
+    description: 'Optional override for paths per goal on runAllTestCases'
     required: false
     default: ''
 
 outputs:
   run-id:
-    description: 'ID of the started exploration run'
+    description: 'ID of the exploration batch'
 
   run-status:
-    description: 'Status of the started exploration run'
+    description: 'Kickoff status of the exploration: "triggered" (running asynchronously — see Viewport for terminal status)'
+
+  test-run-id:
+    description: 'ID of the test-run batch (intent batch). Empty if the target has no test cases configured.'
+
+  test-run-status:
+    description: 'Kickoff status of the test-run batch: triggered (running asynchronously in Viewport), or skipped (no test cases configured)'
+
+  comment-id:
+    description: 'ID of the sticky PR comment posted by the action (only set when invoked on a pull_request event with a github-token)'
 
 runs:
   using: 'node20'

@@ -1,5 +1,5 @@
 name: 'Platform Integration'
-description: 'Creates a Platform API target for your build and optionally starts a test run'
+description: 'Creates a Platform API target for your build and (optionally) kicks off an exploration. On a pull_request the action posts a sticky "running" PR comment and exits immediately; results are posted into the same comment by the Duku GitHub App once the batch terminates. Install the Duku GitHub App on your repo to receive results.'
 author: 'Chrome Worker'
 
 inputs:
@@ -78,18 +78,8 @@ inputs:
     default: ''
 
   github-installation-id:
-    description: 'GitHub App installation ID for PR error reporting (optional)'
+    description: 'GitHub App installation ID for PR error reporting (optional; the server can auto-discover the installation when the Duku GitHub App is installed on the repo)'
     required: false
-
-  exploration-poll-timeout-seconds:
-    description: 'Max seconds to wait for exploration to reach a terminal status when running on a pull_request'
-    required: false
-    default: '2400'
-
-  exploration-poll-interval-seconds:
-    description: 'Seconds between exploration status polls when running on a pull_request'
-    required: false
-    default: '15'
 
   github-token:
     description: 'GitHub token used to post/update the sticky PR comment (defaults to GITHUB_TOKEN env)'
@@ -112,19 +102,16 @@ outputs:
     description: 'Version of the created target'
 
   run-id:
-    description: 'ID of the started simulation run (if start-run is true)'
+    description: 'ID of the started exploration batch (if start-run is true). On PR events this is the same as exploration-batch-id.'
 
   run-status:
-    description: 'Status of the started simulation run (if start-run is true)'
+    description: 'Kickoff status of the exploration: "triggered" on PR events (final status is posted to the PR comment), or the server-reported initial status on non-PR events.'
 
   exploration-batch-id:
-    description: 'ID of the exploration batch (when orchestrated on a pull_request)'
-
-  exploration-status:
-    description: 'Terminal status of the exploration batch (when orchestrated on a pull_request)'
+    description: 'ID of the exploration batch (when running on a pull_request)'
 
   comment-id:
-    description: 'ID of the sticky PR comment (when orchestrated on a pull_request)'
+    description: 'ID of the sticky PR comment posted by the action (when running on a pull_request)'
 
 runs:
   using: 'node20'
