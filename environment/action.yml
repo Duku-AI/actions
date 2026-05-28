@@ -22,7 +22,7 @@ inputs:
     default: 'https://platform.duku.ai/graphql'
 
   auth-url:
-    description: 'Authentication server URL (defaults to deriving from api-url by replacing the platform. host prefix with auth.)'
+    description: 'Authentication server URL (defaults to deriving from api-url by replacing the platform. host prefix with auth. and dropping the path)'
     required: false
     default: ''
 

@@ -32,17 +32,32 @@ Each action is versioned independently with a `<action>/v<semver>` tag scheme:
 - Immutable tags: `preview/v0.1.0`, `preview/v1.2.3`
 - Floating major: `preview/v1` (only updated for stable `>=1.x` releases — `0.x` is pre-release and gets no floating tag)
 
-To cut a release, run from `main` with a clean working tree:
+Releases are **fully automated** off the `version` field in each action's
+`package.json` in chrome-worker. There is no manual `release.sh` here.
 
-```bash
-scripts/release.sh <action> <version>
-# e.g.
-scripts/release.sh preview 0.1.0
-```
+To cut a release for, e.g., `preview`:
 
-The script promotes `## [Unreleased]` in `<action>/CHANGELOG.md`, commits the bump, tags `<action>/v<version>`, force-updates the floating `<action>/v<major>` tag for `>=1.0.0`, pushes tags, and creates a GitHub Release.
+1. In chrome-worker, on a single commit:
+   - Bump `actions-repo/preview/package.json` `"version"` to the next semver.
+   - Promote `## [Unreleased]` → `## [<version>] - <date>` in
+     `actions-repo/preview/CHANGELOG.md` (the section body becomes the
+     GitHub Release notes).
+   - `chore(action/preview): release <version>`.
+2. `sl pr submit` → review → `#land`.
 
-> Requires GNU `sed`. On macOS: `brew install gnu-sed` and run via `gsed`, or run the script in a Linux container.
+After the land, the `actions-repo-sync` workflow runs:
+
+1. Mirrors action artifacts (`action.yml`, `dist/`, `README.md`,
+   `examples/`, `CHANGELOG.md`) into this repo.
+2. For each action, compares its chrome-worker `package.json` version
+   against the existing tags here. For every version not yet tagged it
+   creates an annotated tag `<action>/v<version>`, force-updates the
+   floating `<action>/v<major>` for `>=1.0.0`, and publishes a GitHub
+   Release with notes extracted from the matching `## [<version>]`
+   section of `CHANGELOG.md`.
+
+A pre-merge CI check in chrome-worker refuses to land a PR that lowers
+any action's `package.json` version below the latest published tag.
 
 ## License
 

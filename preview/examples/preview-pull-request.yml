@@ -1,0 +1,36 @@
+# pull_request example for the duku-ai/actions/preview action.
+# Copy into .github/workflows/ in your repo and adjust the secrets/variables
+# to match your setup.
+#
+# On a PR the action resolves the preview URL from GitHub, starts an
+# exploration, posts a sticky "running" PR comment, and exits in seconds.
+# The Platform updates the same comment in place with the final results
+# once the exploration finishes — install the Duku AI GitHub App on the
+# repo for that update to land: https://github.com/apps/duku-ai
+
+name: Duku preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: duku-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    # Action exits in seconds; this cap only guards against network hangs.
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write   # required to post the sticky "running" PR comment
+      deployments: read      # required for preview URL resolution
+    steps:
+      - uses: duku-ai/actions/preview@preview/v0.1.0
+        with:
+          api-key: ${{ secrets.PLATFORM_API_KEY }}
+          product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
+          # Optional: bypass Vercel Deployment Protection on protected previews.
+          # vercel-automation-bypass-secret: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}

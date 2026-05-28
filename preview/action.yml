@@ -1,6 +1,6 @@
-name: 'Platform Integration'
-description: 'Creates a Platform API target for your build and (optionally) kicks off an exploration. On a pull_request the action posts a sticky "running" PR comment and exits immediately; results are posted into the same comment by the Duku GitHub App once the batch terminates. Install the Duku GitHub App on your repo to receive results.'
-author: 'Chrome Worker'
+name: 'Duku Preview'
+description: 'Creates a per-PR Duku target and, on pull_request, orchestrates an exploration with a sticky PR comment of the top errors'
+author: 'Duku AI'
 
 inputs:
   api-url:
@@ -17,8 +17,8 @@ inputs:
     required: false
     default: ''
 
-  subject-id:
-    description: 'Simulation subject ID'
+  product-id:
+    description: 'Duku product ID (from Viewport → Products)'
     required: true
 
   vercel-automation-bypass-secret:
@@ -29,7 +29,7 @@ inputs:
   start-run:
     description: 'Start a simulation run after creating the target'
     required: false
-    default: 'false'
+    default: 'true'
 
   # Optional exploration parameters (used only when start-run=true)
   exploration-url:
@@ -78,8 +78,9 @@ inputs:
     default: ''
 
   github-installation-id:
-    description: 'GitHub App installation ID for PR error reporting (optional; the server can auto-discover the installation when the Duku GitHub App is installed on the repo)'
+    description: 'GitHub App installation ID for PR error reporting (optional; the server auto-discovers the installation when the Duku AI GitHub App is installed on the repo)'
     required: false
+    default: ''
 
   github-token:
     description: 'GitHub token used to post/update the sticky PR comment (defaults to GITHUB_TOKEN env)'
@@ -102,16 +103,16 @@ outputs:
     description: 'Version of the created target'
 
   run-id:
-    description: 'ID of the started exploration batch (if start-run is true). On PR events this is the same as exploration-batch-id.'
+    description: 'ID of the started exploration (if start-run is true). On PR events, same as exploration-batch-id.'
 
   run-status:
-    description: 'Kickoff status of the exploration: "triggered" on PR events (final status is posted to the PR comment), or the server-reported initial status on non-PR events.'
+    description: 'Kickoff status of the exploration. On PR events: "running" (terminal status is posted to the PR comment by the Duku AI GitHub App). On non-PR events: the server-reported initial status.'
 
   exploration-batch-id:
-    description: 'ID of the exploration batch (when running on a pull_request)'
+    description: 'ID of the exploration (when running on a pull_request).'
 
   comment-id:
-    description: 'ID of the sticky PR comment posted by the action (when running on a pull_request)'
+    description: 'ID of the sticky "running" PR comment posted by the action (when running on a pull_request).'
 
 runs:
   using: 'node20'
