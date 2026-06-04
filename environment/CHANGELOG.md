@@ -4,6 +4,12 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-03
+
+- The "running" PR comment now links to the new viewport target route
+  (`/p/{subjectId}/t/{targetId}/exploration`) instead of the legacy
+  `/dashboard/targets/{targetId}` path.
+
 ## [0.1.0] - 2026-05-22
 
 Initial public release.

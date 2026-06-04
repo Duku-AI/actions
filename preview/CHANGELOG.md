@@ -4,6 +4,16 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-03
+
+- The "running" PR comment now links to the new viewport target route
+  (`/p/{subjectId}/t/{targetId}/exploration`) instead of the legacy
+  `/dashboard/targets/{targetId}` path.
+- The initial "running" PR comment is now posted by the Duku AI GitHub App
+  (server-side), matching the author of the terminal-results comment, instead
+  of `github-actions[bot]`. The action no longer writes the comment itself; the
+  `comment-id` output is always empty on PR events.
+
 ## [0.1.0] - 2026-05-22
 
 Initial public release.

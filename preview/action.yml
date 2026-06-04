@@ -106,13 +106,13 @@ outputs:
     description: 'ID of the started exploration (if start-run is true). On PR events, same as exploration-batch-id.'
 
   run-status:
-    description: 'Kickoff status of the exploration. On PR events: "running" (terminal status is posted to the PR comment by the Duku AI GitHub App). On non-PR events: the server-reported initial status.'
+    description: 'Kickoff status of the exploration. On PR events: "triggered" (both the running and terminal-results PR comments are posted by the Duku AI GitHub App). On non-PR events: the server-reported initial status.'
 
   exploration-batch-id:
     description: 'ID of the exploration (when running on a pull_request).'
 
   comment-id:
-    description: 'ID of the sticky "running" PR comment posted by the action (when running on a pull_request).'
+    description: 'Deprecated: always empty on PR events. The sticky PR comment is now posted by the Duku AI GitHub App server-side, so the action no longer knows its id.'
 
 runs:
   using: 'node20'
