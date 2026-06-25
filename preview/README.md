@@ -52,7 +52,17 @@ Set `start-run: false` to skip the exploration and only register the
 build with Duku.
 
 On `push`, `schedule`, and `workflow_dispatch` triggers the action starts
-an exploration and exits — no sticky comment is posted.
+an exploration and exits — no sticky comment is posted, because there is
+no PR to comment on.
+
+To post the PR comments from a **non-`pull_request`** trigger (e.g. a
+deploy step that runs downstream of a PR event on `push` /
+`deployment_status` / `workflow_run` / `repository_dispatch`), pass the
+PR explicitly with `repository` + `pr-number`. The action then runs the
+same PR flow as a native `pull_request` event. Combine with
+`exploration-url` to supply the already-resolved preview URL — when it is
+set, no `github-token` is required (the token is only used to resolve the
+preview URL from GitHub APIs).
 
 ## Inputs
 
@@ -62,7 +72,9 @@ an exploration and exits — no sticky comment is posted.
 | `product-id` | Yes | — | Duku product ID (from Viewport → Products). |
 | `start-run` | No | `true` | Start an exploration after registering the build. Set to `false` to register the build only. |
 | `vercel-automation-bypass-secret` | No | *(empty)* | Vercel Deployment Protection bypass secret for protected previews. |
-| `exploration-url` | No | _product base URL_ | Override the URL to explore. If unset and on a PR, the preview URL resolvers run; otherwise falls back to the product's base URL. |
+| `repository` | No | — | `owner/repo` to attach PR metadata to on a **non-`pull_request`** trigger (set together with `pr-number`). Runs the PR flow and posts both PR comments. |
+| `pr-number` | No | — | PR number to attach to on a non-`pull_request` trigger (set together with `repository`). |
+| `exploration-url` | No | _product base URL_ | Override the URL to explore. If unset and on a PR, the preview URL resolvers run; otherwise falls back to the product's base URL. When set, no `github-token` is required. |
 | `preview-url-source` | No | `auto` | Preview URL resolver on `pull_request`. One of `auto`, `deployments`, `checks`, `statuses`, `comments`, `none`. |
 | `preview-timeout-seconds` | No | `60` | How long to wait for the preview URL to appear (polling-based resolvers like comments). |
 | `preview-poll-interval-seconds` | No | `5` | How frequently to poll for the preview URL. |
@@ -71,7 +83,7 @@ an exploration and exits — no sticky comment is posted.
 | `preview-status-context-regex` | No | *(empty)* | Regex matching a commit status context. If omitted, statuses are skipped in `auto`. |
 | `preview-comment-author-logins` | No | *(empty)* | Comma-separated bot/user logins to scan in PR comments, e.g. `vercel[bot],netlify[bot]`. If omitted, comments are skipped in `auto`. |
 | `preview-url-regex` | No | *(empty)* | Regex to extract the preview URL from provider text (Comments resolver). Defaults to a generic `http(s)` heuristic. |
-| `github-token` | No | `${{ github.token }}` | Token used to post the sticky "running" PR comment (requires `pull-requests: write`). |
+| `github-token` | No | *(empty)* | Token used to resolve the preview URL from GitHub APIs (Deployments / Checks / Statuses / comments). Falls back to the `GITHUB_TOKEN` env. Not required when `exploration-url` is supplied. |
 | `github-installation-id` | No | *(auto)* | Optional Duku AI GitHub App installation ID. The server auto-discovers this when the App is installed. |
 
 ## Outputs

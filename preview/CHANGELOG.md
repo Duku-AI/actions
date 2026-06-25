@@ -4,6 +4,16 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-22
+
+- **Explicit `repository` / `pr-number` inputs.** Non-`pull_request`
+  triggers (push / deployment_status / workflow_run / repository_dispatch)
+  can now pass the PR explicitly to run the full PR flow and post both PR
+  comments, instead of silently skipping the comment.
+- The `github-token` is no longer required on the PR path when an
+  `exploration-url` is supplied — the token is only used to resolve the
+  preview URL from GitHub APIs.
+
 ## [0.1.1] - 2026-06-03
 
 - The "running" PR comment now links to the new viewport target route

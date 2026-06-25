@@ -77,13 +77,23 @@ inputs:
     required: false
     default: ''
 
+  repository:
+    description: 'Explicit "owner/repo" to attach PR metadata to when not running on a pull_request event (must be set together with pr-number). Lets non-pull_request triggers (push, deployment_status, workflow_run, repository_dispatch) post the PR comments.'
+    required: false
+    default: ''
+
+  pr-number:
+    description: 'Explicit PR number to attach to when not running on a pull_request event (must be set together with repository).'
+    required: false
+    default: ''
+
   github-installation-id:
     description: 'GitHub App installation ID for PR error reporting (optional; the server auto-discovers the installation when the Duku AI GitHub App is installed on the repo)'
     required: false
     default: ''
 
   github-token:
-    description: 'GitHub token used to post/update the sticky PR comment (defaults to GITHUB_TOKEN env)'
+    description: 'GitHub token used to resolve the preview URL via GitHub APIs (defaults to GITHUB_TOKEN env). Not required when exploration-url is provided.'
     required: false
     default: ''
 

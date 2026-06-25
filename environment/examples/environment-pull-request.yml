@@ -1,0 +1,28 @@
+# PR-trigger example for the duku-ai/actions/environment action.
+# Runs on PRs into a protected branch (e.g. prod) and explores a fixed,
+# permanent environment target (e.g. a long-lived dev deploy). Copy into
+# .github/workflows/ in your repo and adjust the branches list and the
+# target-id variable to match your setup.
+
+name: Duku environment (PR gate)
+
+on:
+  pull_request:
+    branches: [prod]
+
+concurrency:
+  group: duku-env-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  explore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: duku-ai/actions/environment@environment/v0.2.0
+        with:
+          api-key: ${{ secrets.PLATFORM_API_KEY }}
+          target-id: ${{ vars.DUKU_DEV_TARGET_ID }}
+          github-token: ${{ github.token }}

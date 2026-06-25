@@ -4,6 +4,21 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-22
+
+- **Explicit `repository` / `pr-number` inputs.** Non-`pull_request`
+  triggers can now pass the PR explicitly so the action attaches PR
+  metadata and posts the sticky comment (with a `github-token`), matching
+  the native `pull_request` behaviour.
+
+## [0.2.0] - 2026-06-22
+
+- **First-class PR trigger against a fixed environment.** Running on a
+  `pull_request` event no longer logs a warning steering you to the
+  `preview` action — it's now a supported mode for gating a PR against a
+  permanent environment target (e.g. PRs into `prod` exploring a fixed
+  dev deploy). PR metadata and the sticky comment behaviour are unchanged.
+
 ## [0.1.1] - 2026-06-03
 
 - The "running" PR comment now links to the new viewport target route

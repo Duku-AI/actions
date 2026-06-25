@@ -26,6 +26,16 @@ inputs:
     required: false
     default: ''
 
+  repository:
+    description: 'Explicit "owner/repo" to attach PR metadata to when not running on a pull_request event (must be set together with pr-number). Lets non-pull_request triggers post the PR comment.'
+    required: false
+    default: ''
+
+  pr-number:
+    description: 'Explicit PR number to attach to when not running on a pull_request event (must be set together with repository).'
+    required: false
+    default: ''
+
   github-installation-id:
     description: 'GitHub App installation ID for PR error reporting (optional; the server can auto-discover the installation when the Duku GitHub App is installed on the repo)'
     required: false
