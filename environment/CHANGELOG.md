@@ -4,6 +4,13 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-07-21
+
+- **Per-target "running" PR comment.** When multiple targets run against
+  the same PR, each now gets its own sticky "running" comment instead of
+  overwriting a single shared one, so every target's status is visible at
+  once.
+
 ## [0.3.0] - 2026-06-22
 
 - **Explicit `repository` / `pr-number` inputs.** Non-`pull_request`
