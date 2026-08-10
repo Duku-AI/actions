@@ -97,11 +97,6 @@ inputs:
     required: false
     default: ''
 
-  dashboard-url:
-    description: 'Base URL of the Platform dashboard, used to build batch links in the sticky comment'
-    required: false
-    default: ''
-
 outputs:
   target-id:
     description: 'ID of the created target'
