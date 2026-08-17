@@ -4,6 +4,18 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+- **GitHub check run for PR-triggered explorations.** The Platform now
+  manages `Duku Exploration (<product name>)` on the PR head commit —
+  created `in_progress` at kickoff, concluded `success`/`failure` with
+  the batch, `timed_out` if the batch wedges. See the README's
+  [Required check](./README.md#required-check) section to gate merges on
+  it, replacing CI jobs that poll `batch(id) { status }`.
+  - Server-side change: it activates when the Platform deploys, for
+    **every pinned action version** — no action upgrade needed and no
+    new workflow-token scopes.
+  - Requires an org admin to approve the App's updated permissions
+    (Checks: Read & write).
+
 ## [0.2.0] - 2026-06-22
 
 - **Explicit `repository` / `pr-number` inputs.** Non-`pull_request`

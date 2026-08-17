@@ -42,11 +42,26 @@ permissions:
 ## Behavior
 
 **Async by design.** On `pull_request` events the action resolves the
-preview URL from GitHub, starts an exploration, posts a sticky "running"
-PR comment, and exits in seconds. The Platform updates the same comment
-in place with the final results once the exploration finishes — install
-the [Duku AI GitHub App](https://github.com/apps/duku-ai) on the repo
-for that terminal update to land.
+preview URL from GitHub, starts an exploration, and exits in seconds.
+The Platform posts a sticky "running" PR comment via the
+[Duku AI GitHub App](https://github.com/apps/duku-ai) and updates it in
+place with the final results once the exploration finishes — install
+the App on the repo for the comments to land.
+
+**Check run (merge gating).** On PR paths the Platform also manages a
+GitHub **check run** named `Duku Exploration (<product name>)` on the PR
+head commit: created `in_progress` when the exploration starts, concluded
+`success` when the batch completes, `failure` when it fails, and
+`timed_out` if it never reaches a terminal state within the Platform-side
+deadline (2 hours by default, measured from exploration start). The check
+reflects whether the exploration **ran to completion**, not whether it
+found zero issues — the issues seen on the PR (new-vs-pre-existing, with
+the ignored count disclosed) are listed in the check output just like the
+PR comment, and a batch that completes with issues observed still
+concludes `success`. The check is written server-side by
+the Duku AI GitHub App; the action itself never *writes* to the Checks
+API (the `checks: read` permission below is only for the preview-URL
+resolver). See [Required check](#required-check) to gate merges on it.
 
 Set `start-run: false` to skip the exploration and only register the
 build with Duku.
@@ -59,10 +74,15 @@ To post the PR comments from a **non-`pull_request`** trigger (e.g. a
 deploy step that runs downstream of a PR event on `push` /
 `deployment_status` / `workflow_run` / `repository_dispatch`), pass the
 PR explicitly with `repository` + `pr-number`. The action then runs the
-same PR flow as a native `pull_request` event. Combine with
-`exploration-url` to supply the already-resolved preview URL — when it is
-set, no `github-token` is required (the token is only used to resolve the
-preview URL from GitHub APIs).
+same PR flow as a native `pull_request` event — including the check run,
+so a deploy-triggered exploration satisfies the required check too. One
+caveat on that path: the Platform resolves the PR **head SHA at kickoff
+time**, so if the PR advanced between the deploy and the kickoff, the
+check lands on the newer head while the exploration ran against the
+older deploy. Combine with `exploration-url` to supply the
+already-resolved preview URL — when it is set, no `github-token` is
+required (the token is only used to resolve the preview URL from GitHub
+APIs).
 
 ## Inputs
 
@@ -94,9 +114,9 @@ preview URL from GitHub APIs).
 | `target-name` | Human-readable name of the build. |
 | `target-version` | Version assigned to the build. |
 | `run-id` | ID of the started exploration (when `start-run: true`). On PR runs, same as `exploration-batch-id`. |
-| `run-status` | Kickoff status of the exploration. On PR runs: `running` — terminal status is posted to the PR comment by the Duku AI GitHub App. |
+| `run-status` | Kickoff status of the exploration. On PR runs: `triggered` — terminal status is posted to the PR comment by the Duku AI GitHub App. |
 | `exploration-batch-id` | ID of the exploration (PR runs only). |
-| `comment-id` | ID of the sticky "running" PR comment (PR runs only). |
+| `comment-id` | Always empty on PR events since 0.1.1 — the sticky comment is posted server-side by the Duku AI GitHub App, not by the action. |
 
 ## Permissions
 
@@ -110,8 +130,15 @@ permissions:
   issues: read              # PR comments resolver (if used)
 ```
 
-`pull-requests: write` is required on `pull_request` runs so the action
-can post the sticky comment.
+The **workflow token needs no additional scopes for the check run** — it
+is created and concluded server-side by the Duku AI GitHub App, which
+needs **Checks: Read & write** on its installation (new), in addition to
+the pull-request access the comment flow already uses. If your org
+installed the App before this permission existed, GitHub prompts an org
+admin to approve the update (Org Settings → GitHub Apps → Duku AI →
+Review request). Until approval the Platform warns and skips check-run
+writes, retrying for up to 7 days — approve mid-flight and recent
+explorations get their checks retroactively.
 
 ## Repository configuration
 
@@ -122,6 +149,59 @@ Add the following in your repo (Settings → Secrets and variables → Actions):
 | `PLATFORM_API_KEY` | Secret | Duku Platform API key. |
 | `PLATFORM_PRODUCT_ID` | Variable | Duku product ID (not sensitive). |
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | Secret (optional) | Vercel Deployment Protection bypass for protected previews. |
+
+## Required check
+
+To block merges until the exploration finishes, mark the check as
+required in branch protection. The check run replaces CI jobs that poll
+`batch(id) { status }`.
+
+1. Install the [Duku AI GitHub App](https://github.com/apps/duku-ai) on
+   the repo and have an org admin **approve the App's Checks permission**
+   (see [Permissions](#permissions)). Do this first — a required check
+   that the App cannot write blocks every merge.
+2. Run the workflow once on any PR and note the exact check name:
+   `Duku Exploration (<product name>)`. (A product with an empty name
+   falls back to an internal target id — set the product name first so
+   the check name is stable.)
+3. Repo Settings → Branches → your protection rule → **Require status
+   checks to pass** → add that name.
+4. Delete the CI job that polls `batch(id) { status }`.
+
+**Only require the check if the workflow genuinely runs on every PR you
+gate.** A PR where no exploration starts leaves the required check as
+"Expected — waiting" forever. Watch for: `paths:`/`branches:` filters or
+`if:` conditions skipping the job, `start-run: false`, draft PRs your
+workflow skips, and fork PRs (no secrets on `pull_request` from forks,
+so the action cannot authenticate). If a PR wedges, the unblocks are
+re-running the workflow, an admin merge, or removing the check from the
+protection rule.
+
+Semantics worth knowing:
+
+- **Run the action once per product per commit.** The check name is
+  keyed on your Duku product, not the PR or batch, so it is stable
+  across PRs — but a second kickoff for the same product on the same
+  commit creates a new run of the same name and resets the visible
+  check to `in_progress` until it concludes.
+- **Renaming the product renames the check** — update the branch
+  protection rule after a rename, or merges block on a check that will
+  never report again.
+- **Wedged explorations conclude `timed_out` after the deadline and block
+  the merge by design** (fail closed): an unfinished exploration must not
+  satisfy a required check. Re-run the workflow — a fresh exploration
+  supersedes the timed-out check. (Force-failing the stuck batch flips
+  the check to `failure`; it tidies the batch but does not unblock the
+  merge.) If the batch does finish later, the check re-converges to the
+  real result automatically.
+- **A force-push while an exploration is running** leaves the new head's
+  check as "Expected — waiting" until the action runs again on the new
+  commit (standard required-check semantics). A force-push in the window
+  between the workflow starting and the Platform creating the check
+  (normally seconds, but up to ~15 minutes when the first create attempt
+  fails and the reconciler retries) can land the check on the new head
+  with results from the old code — re-run the workflow after
+  force-pushes to be safe.
 
 ## Vercel preview URL
 
@@ -153,12 +233,13 @@ the resolver at the Vercel bot:
 Actions runners, the `api-key` is current, and check the action logs for
 the specific error.
 
-**Sticky "running" PR comment missing.** On `pull_request` runs the
-action posts the initial comment itself:
+**Sticky "running" PR comment missing.** Since 0.1.1 the comment is
+posted server-side by the Duku AI GitHub App, not by the action:
 
-- Confirm the workflow grants `pull-requests: write` (or pass a
-  `github-token` with that scope).
-- Check the action logs for a 403 when posting the comment.
+- Verify the [Duku AI GitHub App](https://github.com/apps/duku-ai) is
+  installed on the repo.
+- Check the action logs confirm the exploration actually started (the
+  comment is only posted for a started exploration with PR context).
 
 **Terminal results never appear in the PR comment.** The Platform
 updates the comment via the Duku AI GitHub App after exploration
@@ -168,3 +249,37 @@ finishes:
   installed on the repo.
 - Check exploration status in Viewport — if it's still running, the
   comment will update once it terminates.
+
+**Required check stuck on "Expected — waiting for status".** GitHub
+shows this when the check name is required but no run exists on the head
+commit. Causes, roughly in order of likelihood: the workflow didn't run
+on this commit (skipped by `paths:`/`branches:`/`if:` filters, a draft
+PR, a fork PR without secrets, or a force-push — re-run it);
+`start-run: false` (no exploration means no check, ever); the App isn't
+installed on the repo, or its Checks permission hasn't been approved by
+an org admin yet; or the check name in branch protection no longer
+matches (product renamed). Timing: the check normally appears within
+seconds of the workflow run; if the first create attempt failed it can
+take ~15 minutes for the Platform's reconciler to create it, and after
+7 days it stops retrying entirely (old PRs need a workflow re-run).
+
+**Check concluded `timed_out`.** The exploration didn't reach a terminal
+state within the Platform's deadline. Blocking the merge here is
+deliberate. Re-run the workflow — a fresh exploration supersedes the
+timed-out check. If the batch finishes later, the check flips to the
+real result on its own. (Force-failing the stuck batch marks it
+`failure`, which still blocks; it's cleanup, not an unblock.)
+
+**Check briefly shows `failure`, then flips to `success`.** A dispatch
+handshake timing out can mark the batch failed while runs actually
+proceed; when the runs finish, the Platform corrects the batch and
+re-concludes the check automatically, and the merge unblocks without
+intervention. (A CI job reading `batch(id) { status }` stops at the
+first `failed` and never sees the correction.)
+
+**Duplicate check runs on one commit.** Concurrent create paths (the
+kickoff hook racing a reconciler retry) can rarely create an extra run;
+the Platform tracks and concludes the newest one, which is the one
+branch protection evaluates. The older run stays visible in the PR's
+Checks tab as a permanent `in_progress` leftover — ignored by branch
+protection, safe to ignore yourself.
