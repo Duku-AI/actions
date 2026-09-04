@@ -63,6 +63,15 @@ the Duku AI GitHub App; the action itself never *writes* to the Checks
 API (the `checks: read` permission below is only for the preview-URL
 resolver). See [Required check](#required-check) to gate merges on it.
 
+**Preview URL resolution.** `preview-url-source: auto` (the default) tries
+the three resolvers keyed on the head commit, in order: GitHub
+**Deployments**, then **Check Runs**, then commit **Statuses**. It stops at
+the first hit and records which resolver won on the build (`preview-url-source`
+output, `deployment.urlSource` in the Platform). `auto` deliberately never
+reads PR comments — provider bots advertise a *branch alias*, which moves to
+the next push, so exploring it can report a different build's behaviour as
+this commit's. Pass `preview-url-source: comments` to opt into that anyway.
+
 Set `start-run: false` to skip the exploration and only register the
 build with Duku.
 
@@ -95,7 +104,7 @@ APIs).
 | `repository` | No | — | `owner/repo` to attach PR metadata to on a **non-`pull_request`** trigger (set together with `pr-number`). Runs the PR flow and posts both PR comments. |
 | `pr-number` | No | — | PR number to attach to on a non-`pull_request` trigger (set together with `repository`). |
 | `exploration-url` | No | _product base URL_ | Override the URL to explore. If unset and on a PR, the preview URL resolvers run; otherwise falls back to the product's base URL. When set, no `github-token` is required. |
-| `preview-url-source` | No | `auto` | Preview URL resolver on `pull_request`. One of `auto`, `deployments`, `checks`, `statuses`, `comments`, `none`. |
+| `preview-url-source` | No | `auto` | Preview URL resolver on `pull_request`. One of `auto`, `deployments`, `checks`, `statuses`, `comments`, `none`. `auto` runs only the sha-keyed resolvers (deployments → checks → statuses) and never reads PR comments. |
 | `preview-timeout-seconds` | No | `60` | How long to wait for the preview URL to appear (polling-based resolvers like comments). |
 | `preview-poll-interval-seconds` | No | `5` | How frequently to poll for the preview URL. |
 | `preview-deployment-environment-regex` | No | `preview\|review\|staging\|pr` | Regex matching the GitHub Deployment environment (Deployments resolver). |
@@ -117,6 +126,7 @@ APIs).
 | `run-status` | Kickoff status of the exploration. On PR runs: `triggered` — terminal status is posted to the PR comment by the Duku AI GitHub App. |
 | `exploration-batch-id` | ID of the exploration (PR runs only). |
 | `comment-id` | Always empty on PR events since 0.1.1 — the sticky comment is posted server-side by the Duku AI GitHub App, not by the action. |
+| `preview-url-source` | Which resolver produced the preview URL: `deployments`, `checks`, `statuses`, `comments`, or `override` when `exploration-url` was set. Empty when none resolved. |
 
 ## Permissions
 
@@ -206,9 +216,15 @@ Semantics worth knowing:
 ## Vercel preview URL
 
 If your repo uses the Vercel GitHub integration, `preview-url-source: auto`
-(the default) picks up the preview deployment via GitHub Deployments
-first, falling back to PR comments. To force the comments path, point
-the resolver at the Vercel bot:
+(the default) picks up the preview deployment via GitHub Deployments — the
+per-commit URL Vercel publishes for that exact build.
+
+The Vercel bot's PR comment is a different thing. Its **Preview** link is the
+*branch alias* (`<project>-git-<branch>-<team>.vercel.app`), which Vercel
+re-points at every new deployment on the branch. `auto` will never use it: by
+the time an exploration navigates it, the alias may already serve the next
+push, and the run would attribute another build's behaviour to this commit.
+Opt in explicitly if you want it anyway:
 
 ```yaml
 - uses: duku-ai/actions/preview@preview/v0.1.0

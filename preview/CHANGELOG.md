@@ -4,6 +4,30 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+- **App-version axis: per-commit build identity.** The action now stamps every
+  build with the commit it came from, so observations can be told apart by
+  release.
+  - The build key is now **per-commit** (`…:pr={n}:sha={full}`), not per-PR —
+    one Target per build instead of one mutable Target per PR. Target names gain
+    the short SHA so a PR's many builds don't collapse into identical labels.
+  - `commitSha` is sent **only from a verified source** (a `pull_request` head,
+    a `push` `GITHUB_SHA`, or an octokit PR-head fetch on the explicit
+    `repository`/`pr-number` path). On `workflow_run` / `deployment_status` the
+    `GITHUB_SHA` describes the *workflow's* ref, not the build, so it is never
+    trusted — the Platform mints an honest metadata-only version instead.
+  - `lineage` is the head branch ref (fork refs qualified `{head_repo}:{ref}`);
+    `parentCommitSha` orders the release DAG. The PR number is display metadata,
+    never identity. It comes from the same verified sources `commitSha` does —
+    the octokit PR-head fetch on the override path, and `GITHUB_REF_NAME` only
+    on `push` — so a `workflow_run` build is no longer filed under the
+    workflow's own ref.
+  - Each PR's preview endpoint is its own **environment** (named `pr-{n}`,
+    fork-qualified).
+  - **Upgrade note:** action versions before this release keep PR-scoped build
+    keys, so their Targets freeze `version`/`environment` at first-commit values
+    (they were silently overwritten every push before, too). Upgrade to get
+    per-build history.
+
 - **GitHub check run for PR-triggered explorations.** The Platform now
   manages `Duku Exploration (<product name>)` on the PR head commit —
   created `in_progress` at kickoff, concluded `success`/`failure` with
@@ -15,6 +39,21 @@ All notable changes to the `preview` action will be documented in this file.
     new workflow-token scopes.
   - Requires an org admin to approve the App's updated permissions
     (Checks: Read & write).
+
+- **`preview-url-source: auto` no longer falls through to PR comments.** It now
+  runs only the resolvers keyed on the head commit — Deployments, then Checks,
+  then Statuses. A provider bot's PR comment advertises the *branch alias*,
+  which moves to the next push, so `auto` could explore (and record) a URL that
+  no longer served the commit it was attributing to. Set
+  `preview-url-source: comments` to keep the old behaviour explicitly. If
+  `preview-comment-author-logins` is configured and `auto` finds nothing, the
+  action logs a warning naming that opt-in.
+- **The resolved URL and its source are recorded on the build.** The Platform
+  stores them on the deployment (`deployment.url` / `deployment.urlSource`), so
+  "what was this build served at?" survives the next push — unlike
+  `environment.url`, which is the endpoint's current alias. Also exposed as the
+  new `preview-url-source` action output (`override` when `exploration-url` was
+  supplied).
 
 ## [0.2.0] - 2026-06-22
 

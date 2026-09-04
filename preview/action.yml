@@ -38,7 +38,7 @@ inputs:
     default: ''
 
   preview-url-source:
-    description: "When start-run=true on a pull_request and exploration-url is not set, how to resolve the preview URL. 'auto' tries Deployments first, then optionally checks/statuses/comments if configured."
+    description: "When start-run=true on a pull_request and exploration-url is not set, how to resolve the preview URL. 'auto' tries the sha-keyed resolvers only — Deployments, then Checks, then Statuses. It never reads PR comments: those advertise a provider's mutable branch alias, not this commit's build. Set 'comments' explicitly to opt into that."
     required: false
     default: 'auto'
 
@@ -118,6 +118,9 @@ outputs:
 
   comment-id:
     description: 'Deprecated: always empty on PR events. The sticky PR comment is now posted by the Duku AI GitHub App server-side, so the action no longer knows its id.'
+
+  preview-url-source:
+    description: "Which resolver produced the preview URL: deployments, checks, statuses, comments, or override when exploration-url was set. Empty when no URL was resolved."
 
 runs:
   using: 'node20'
