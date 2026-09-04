@@ -4,6 +4,39 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+- **`product-id` + `environment` inputs.** Point the action at an endpoint you
+  declared in Viewport instead of a pre-created target, and every trigger mints
+  a build for that commit against it — so runs, issues and tests are attributed
+  to a release and two builds can be compared. The optional `release-label`
+  input records a human-readable name (`1.4.2`) alongside the commit SHA.
+- **`target-id` is deprecated.** It still works, unchanged, and still produces
+  unversioned runs. It cannot be combined with `product-id` / `environment`.
+- **`url` is rejected alongside `environment`.** The endpoint owns its URL and
+  the server resolves it from the deployment, so an override would have been
+  silently discarded.
+
+- **`run-exploration` / `run-tests` inputs.** One workflow no longer has to
+  fire both run types: set either to `false` to trigger just the other. Both
+  default to `true`, so an existing workflow is unchanged. Setting both to
+  `false` fails the step rather than kicking off nothing.
+
+- **On push, the action records which PR heads landed as the pushed commits.**
+  A squash or rebase mints a new SHA, so a PR's preview builds and the build
+  that shipped shared nothing to join on. With a `github-token` carrying
+  `pull-requests: read`, the action resolves the PRs each pushed commit came
+  from and records the link. Best effort: no token, a refused lookup or a
+  failed write logs a warning and the run continues. See the README's
+  [Linking PR previews to what landed](./README.md#linking-pr-previews-to-what-landed).
+
+- **The sticky PR comment is keyed on the product and the endpoint.** It used to
+  be keyed on the target id, and targets are now per-commit — so every push
+  posted a new comment instead of updating the one already there. A product's
+  builds on one endpoint (`pr-53`, `staging`) now share a single comment,
+  updated in place, while two products on the same PR stay independent. A
+  target with no deployment still keys on the target id. One caveat on upgrade:
+  an existing `v1` comment is left alone, so the first run after upgrading adds
+  one more comment and every run after that updates it.
+
 ## [0.3.1] - 2026-07-21
 
 - **Per-target "running" PR comment.** When multiple targets run against

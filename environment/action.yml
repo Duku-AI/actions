@@ -1,5 +1,5 @@
 name: 'Duku Environment'
-description: 'Triggers a Duku exploration (and test cases) against a pre-created environment target. The action kicks off the exploration and exits — terminal results appear in Viewport. Intended for push / schedule / workflow_dispatch.'
+description: 'Records the build a commit produced against one of your Duku environments, then triggers an exploration and/or test cases against it. The action kicks off the runs and exits — terminal results appear in Viewport. Intended for push / schedule / workflow_dispatch.'
 author: 'Duku AI'
 
 inputs:
@@ -7,12 +7,28 @@ inputs:
     description: 'Platform API key (generate in Viewport Settings → API Keys)'
     required: true
 
+  product-id:
+    description: 'Duku product ID (from Viewport → Products). Use with `environment`; mints a build per commit against that endpoint.'
+    required: false
+    default: ''
+
+  environment:
+    description: 'Name of an environment declared on the product (Viewport → Product settings → Environments), e.g. staging. Required with `product-id`.'
+    required: false
+    default: ''
+
+  release-label:
+    description: 'Optional human-readable release name for this build, e.g. 1.4.2. Recorded alongside the commit SHA.'
+    required: false
+    default: ''
+
   target-id:
-    description: 'Pre-created environment target ID from Viewport'
-    required: true
+    description: 'DEPRECATED: pre-created environment target ID from Viewport. Runs are not attributed to a release — use product-id + environment instead. Mutually exclusive with them.'
+    required: false
+    default: ''
 
   url:
-    description: 'Override the URL to explore (defaults to the target buildUrl)'
+    description: 'Override the URL to explore. Only valid with `target-id` (defaults to the target buildUrl); with `environment` the endpoint owns its URL.'
     required: false
     default: ''
 
@@ -42,9 +58,19 @@ inputs:
     default: ''
 
   github-token:
-    description: 'GitHub token used to post a sticky "running" PR comment when this action is invoked on a pull_request event. Falls back to GITHUB_TOKEN from env if unset. Not used on push / schedule / workflow_dispatch.'
+    description: 'GitHub token. On a pull_request event it posts the sticky "running" PR comment (needs pull-requests: write). On a push it resolves which PRs the pushed commits came from, so a PR''s preview builds can be linked to the build that shipped (needs pull-requests: read). Falls back to GITHUB_TOKEN from env if unset. Optional on both paths — without it the comment and the link are skipped, never failed. Unused on schedule / workflow_dispatch.'
     required: false
     default: ''
+
+  run-exploration:
+    description: 'Start an exploration run. Set false to trigger only the test batch.'
+    required: false
+    default: 'true'
+
+  run-tests:
+    description: "Trigger the target's test cases. Set false to explore only."
+    required: false
+    default: 'true'
 
   test-runs-per-path:
     description: 'Optional override for runs per path on runAllTestCases'
@@ -58,16 +84,16 @@ inputs:
 
 outputs:
   run-id:
-    description: 'ID of the exploration batch'
+    description: 'ID of the exploration batch. Empty when run-exploration is false.'
 
   run-status:
-    description: 'Kickoff status of the exploration: "triggered" (running asynchronously — see Viewport for terminal status)'
+    description: 'Kickoff status of the exploration: triggered (running asynchronously — see Viewport for terminal status), or skipped (run-exploration is false)'
 
   test-run-id:
-    description: 'ID of the test-run batch (intent batch). Empty if the target has no test cases configured.'
+    description: 'ID of the test-run batch (intent batch). Empty if the target has no test cases configured, or run-tests is false.'
 
   test-run-status:
-    description: 'Kickoff status of the test-run batch: triggered (running asynchronously in Viewport), or skipped (no test cases configured)'
+    description: 'Kickoff status of the test-run batch: triggered (running asynchronously in Viewport), or skipped (no test cases configured, or run-tests is false)'
 
   comment-id:
     description: 'ID of the sticky PR comment posted by the action (only set when invoked on a pull_request event with a github-token)'
