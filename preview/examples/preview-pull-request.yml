@@ -28,7 +28,7 @@ jobs:
       pull-requests: write   # required to post the sticky "running" PR comment
       deployments: read      # required for preview URL resolution
     steps:
-      - uses: duku-ai/actions/preview@preview/v0.1.0
+      - uses: duku-ai/actions/preview@preview/v0.2.0
         with:
           api-key: ${{ secrets.PLATFORM_API_KEY }}
           product-id: ${{ vars.PLATFORM_PRODUCT_ID }}

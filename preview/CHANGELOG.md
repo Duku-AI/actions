@@ -4,6 +4,51 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+- **Every request identifies the action and its version.** Requests now carry a
+  `user-agent` of `duku-actions/{action}/{version}`. It lets Duku see which
+  action versions are still in use — which is what decides when a compatibility
+  fallback can be retired — without asking anyone. No new inputs, no behaviour
+  change, nothing about your repository is sent.
+
+- **The upsert mode is chosen up front, not learned from a refusal.** Before
+  recording the build the action asks the Platform which features your product's
+  organisation has. A definite "no axis here" answer goes straight to the
+  legacy upsert — one request instead of an attempt plus a retry, and the
+  warning names which of the two causes it is. The probe can never fail the
+  step: an inconclusive answer just means the axis fields are attempted and the
+  fallbacks below still apply. Cost is one extra small request per run.
+
+- **Legacy compatibility mode when the axis is off for your organisation.** The
+  app-version fields are also an entitlement, so a Platform new enough to
+  understand them can still refuse them for your org. The action now recognises
+  that refusal, warns naming `version-axis` and the fix (ask Duku to enable it),
+  and records the build the pre-0.3.0 way rather than failing the step — the
+  same fallback as the too-old Platform below, with a different cause. A
+  `FORBIDDEN` that names no reason still fails the step.
+
+- **Legacy compatibility mode on an older Platform.** The app-version fields
+  described below (`commitSha`, `lineage`, environments) only exist on a
+  Platform that has the axis deployed, and a pinned action version can outrun
+  it. Rather than failing the step, the action now
+  notices the refusal, warns, and records the build the pre-0.3.0 way — one
+  Target per PR (`github:repo={repo}:pr={n}`), no commit SHA, no release
+  history. Everything else in the run is unchanged. One consequence to expect
+  on the Platform upgrade: that per-PR Target is a different row from the
+  per-commit Targets minted afterwards, so a PR that ran in both modes shows a
+  seam rather than one continuous history. The fallback fires only when *every*
+  field the Platform refused is one of those app-version fields — anything else
+  still fails the step.
+- **`run-exploration` is the canonical run switch; `start-run` is a deprecated
+  alias.** An explicitly set `run-exploration` wins when both are given (with a
+  warning when they disagree); otherwise `start-run` applies as before, so an
+  existing workflow is unchanged apart from the deprecation warning. This aligns
+  the switch with the `environment` action's `run-exploration` / `run-tests`
+  pair — `run-tests` stays `environment`-only, since preview builds are
+  ephemeral per-PR endpoints rather than releases tests run against.
+- **`release-label` input.** Records a human-readable release name (`1.4.2`)
+  alongside the commit SHA and uses it as the build version, mirroring the
+  `environment` action.
+
 - **App-version axis: per-commit build identity.** The action now stamps every
   build with the commit it came from, so observations can be told apart by
   release.

@@ -13,14 +13,24 @@ inputs:
     default: ''
 
   environment:
-    description: 'Name of an environment declared on the product (Viewport → Product settings → Environments), e.g. staging. Required with `product-id`.'
+    description: 'Name of an environment declared on the product (Viewport → Product settings → Environments), e.g. staging. Optional with `product-id`: when empty the run lands on the product''s default environment.'
     required: false
     default: ''
 
   release-label:
-    description: 'Optional human-readable release name for this build, e.g. 1.4.2. Recorded alongside the commit SHA.'
+    description: 'Explicit release name for this build, e.g. 1.4.2. Recorded alongside the commit SHA. When set it wins over `release-label-from`.'
     required: false
     default: ''
+
+  release-label-from:
+    description: 'Where the release name comes from when `release-label` is unset: `git-describe` (default, `git describe --tags --always --dirty`), `git-tag` (exact tag on HEAD), `package-json` (version field), or `input` (only `release-label`, may be empty). A source that yields nothing falls back to the short SHA with a warning, never a failure.'
+    required: false
+    default: 'git-describe'
+
+  package-json-path:
+    description: 'Path to package.json, relative to the checkout root. Only read when `release-label-from` is `package-json`.'
+    required: false
+    default: 'package.json'
 
   target-id:
     description: 'DEPRECATED: pre-created environment target ID from Viewport. Runs are not attributed to a release — use product-id + environment instead. Mutually exclusive with them.'
@@ -28,7 +38,12 @@ inputs:
     default: ''
 
   url:
-    description: 'Override the URL to explore. Only valid with `target-id` (defaults to the target buildUrl); with `environment` the endpoint owns its URL.'
+    description: 'DEPRECATED: use `exploration-url` instead. Override the URL to explore. Only valid with `target-id` (defaults to the target buildUrl); with `environment` the endpoint owns its URL.'
+    required: false
+    default: ''
+
+  exploration-url:
+    description: 'Override the URL to explore. Only valid with `target-id` (defaults to the target buildUrl); with `product-id` (+ optional `environment`) the endpoint owns its URL.'
     required: false
     default: ''
 
@@ -72,6 +87,31 @@ inputs:
     required: false
     default: 'true'
 
+  wait-for-deployment:
+    description: 'Poll the environment URL until it serves the expected commit before exploring. The app must expose its deployed commit as a response header (see wait-commit-header). Off by default.'
+    required: false
+    default: 'false'
+
+  wait-for-deployment-timeout-seconds:
+    description: 'How long to wait for the expected commit before failing the step.'
+    required: false
+    default: '300'
+
+  wait-for-deployment-interval-seconds:
+    description: 'Delay between deployment polls.'
+    required: false
+    default: '10'
+
+  wait-commit-header:
+    description: 'Response header the app exposes its deployed commit hash on (case-insensitive).'
+    required: false
+    default: 'x-commit-sha'
+
+  wait-commit-path:
+    description: 'Path appended to the environment URL on each poll (e.g. /api/health).'
+    required: false
+    default: '/'
+
   test-runs-per-path:
     description: 'Optional override for runs per path on runAllTestCases'
     required: false
@@ -83,6 +123,12 @@ inputs:
     default: ''
 
 outputs:
+  target-id:
+    description: 'ID of the build the run was attributed to (the minted target in environment mode, the given target in target mode).'
+
+  release-id:
+    description: 'ID of the release (app version) the build landed as. Empty in target mode, which mints no release.'
+
   run-id:
     description: 'ID of the exploration batch. Empty when run-exploration is false.'
 

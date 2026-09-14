@@ -23,7 +23,7 @@ permissions:
   pull-requests: write   # required to post the sticky PR comment
   deployments: read      # required for preview URL resolution
 
-- uses: duku-ai/actions/preview@preview/v0.1.0
+- uses: duku-ai/actions/preview@preview/v0.2.0
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
@@ -32,7 +32,7 @@ permissions:
 ### With Vercel Deployment Protection
 
 ```yaml
-- uses: duku-ai/actions/preview@preview/v0.1.0
+- uses: duku-ai/actions/preview@preview/v0.2.0
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
@@ -72,8 +72,8 @@ reads PR comments — provider bots advertise a *branch alias*, which moves to
 the next push, so exploring it can report a different build's behaviour as
 this commit's. Pass `preview-url-source: comments` to opt into that anyway.
 
-Set `start-run: false` to skip the exploration and only register the
-build with Duku.
+Set `run-exploration: false` (`start-run` is a deprecated alias) to skip the
+exploration and only register the build with Duku.
 
 On `push`, `schedule`, and `workflow_dispatch` triggers the action starts
 an exploration and exits — no sticky comment is posted, because there is
@@ -99,7 +99,9 @@ APIs).
 |------|----------|---------|-------------|
 | `api-key` | Yes | — | Duku Platform API key. Generate in Viewport → Settings → API Keys. |
 | `product-id` | Yes | — | Duku product ID (from Viewport → Products). |
-| `start-run` | No | `true` | Start an exploration after registering the build. Set to `false` to register the build only. |
+| `run-exploration` | No | `true` | Start an exploration after registering the build. Set to `false` to register the build only. |
+| `start-run` | No | `true` | **Deprecated alias for `run-exploration`.** |
+| `release-label` | No | — | Human-readable release name for this build, e.g. `1.4.2`. Recorded alongside the commit SHA and used as the build version. |
 | `vercel-automation-bypass-secret` | No | *(empty)* | Vercel Deployment Protection bypass secret for protected previews. |
 | `repository` | No | — | `owner/repo` to attach PR metadata to on a **non-`pull_request`** trigger (set together with `pr-number`). Runs the PR flow and posts both PR comments. |
 | `pr-number` | No | — | PR number to attach to on a non-`pull_request` trigger (set together with `repository`). |
@@ -122,7 +124,7 @@ APIs).
 | `target-id` | ID of the build registered with Duku. |
 | `target-name` | Human-readable name of the build. |
 | `target-version` | Version assigned to the build. |
-| `run-id` | ID of the started exploration (when `start-run: true`). On PR runs, same as `exploration-batch-id`. |
+| `run-id` | ID of the started exploration (when `run-exploration: true`). On PR runs, same as `exploration-batch-id`. |
 | `run-status` | Kickoff status of the exploration. On PR runs: `triggered` — terminal status is posted to the PR comment by the Duku AI GitHub App. |
 | `exploration-batch-id` | ID of the exploration (PR runs only). |
 | `comment-id` | Always empty on PR events since 0.1.1 — the sticky comment is posted server-side by the Duku AI GitHub App, not by the action. |
@@ -181,7 +183,7 @@ required in branch protection. The check run replaces CI jobs that poll
 **Only require the check if the workflow genuinely runs on every PR you
 gate.** A PR where no exploration starts leaves the required check as
 "Expected — waiting" forever. Watch for: `paths:`/`branches:` filters or
-`if:` conditions skipping the job, `start-run: false`, draft PRs your
+`if:` conditions skipping the job, `run-exploration: false`, draft PRs your
 workflow skips, and fork PRs (no secrets on `pull_request` from forks,
 so the action cannot authenticate). If a PR wedges, the unblocks are
 re-running the workflow, an admin merge, or removing the check from the
@@ -227,7 +229,7 @@ push, and the run would attribute another build's behaviour to this commit.
 Opt in explicitly if you want it anyway:
 
 ```yaml
-- uses: duku-ai/actions/preview@preview/v0.1.0
+- uses: duku-ai/actions/preview@preview/v0.2.0
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
@@ -242,7 +244,7 @@ Opt in explicitly if you want it anyway:
 ## Troubleshooting
 
 **Action not found.** Confirm you're pinning a tag that exists, e.g.
-`duku-ai/actions/preview@preview/v0.1.0`. The floating major
+`duku-ai/actions/preview@preview/v0.2.0`. The floating major
 (`preview/v1`) is only published once a stable `1.x` release is cut.
 
 **API connection fails.** Verify `api-url` is reachable from GitHub
@@ -271,7 +273,7 @@ shows this when the check name is required but no run exists on the head
 commit. Causes, roughly in order of likelihood: the workflow didn't run
 on this commit (skipped by `paths:`/`branches:`/`if:` filters, a draft
 PR, a fork PR without secrets, or a force-push — re-run it);
-`start-run: false` (no exploration means no check, ever); the App isn't
+`run-exploration: false` (no exploration means no check, ever); the App isn't
 installed on the repo, or its Checks permission hasn't been approved by
 an org admin yet; or the check name in branch protection no longer
 matches (product renamed). Timing: the check normally appears within

@@ -27,18 +27,28 @@ inputs:
     default: ''
 
   start-run:
-    description: 'Start a simulation run after creating the target'
+    description: 'DEPRECATED: use `run-exploration` instead. Start a simulation run after creating the target'
     required: false
-    default: 'true'
+    default: ''
 
-  # Optional exploration parameters (used only when start-run=true)
+  run-exploration:
+    description: 'Start an exploration after creating the target'
+    required: false
+    default: ''
+
+  release-label:
+    description: 'Optional human-readable release name for this build, e.g. 1.4.2. Recorded alongside the commit SHA and used as the build version.'
+    required: false
+    default: ''
+
+  # Optional exploration parameters (used only when run-exploration is true)
   exploration-url:
     description: 'Override the URL to explore (defaults to the subject baseUrl)'
     required: false
     default: ''
 
   preview-url-source:
-    description: "When start-run=true on a pull_request and exploration-url is not set, how to resolve the preview URL. 'auto' tries the sha-keyed resolvers only — Deployments, then Checks, then Statuses. It never reads PR comments: those advertise a provider's mutable branch alias, not this commit's build. Set 'comments' explicitly to opt into that."
+    description: "When run-exploration=true on a pull_request and exploration-url is not set, how to resolve the preview URL. 'auto' tries the sha-keyed resolvers only — Deployments, then Checks, then Statuses. It never reads PR comments: those advertise a provider's mutable branch alias, not this commit's build. Set 'comments' explicitly to opt into that."
     required: false
     default: 'auto'
 
@@ -108,7 +118,7 @@ outputs:
     description: 'Version of the created target'
 
   run-id:
-    description: 'ID of the started exploration (if start-run is true). On PR events, same as exploration-batch-id.'
+    description: 'ID of the started exploration (if run-exploration is true). On PR events, same as exploration-batch-id.'
 
   run-status:
     description: 'Kickoff status of the exploration. On PR events: "triggered" (both the running and terminal-results PR comments are posted by the Duku AI GitHub App). On non-PR events: the server-reported initial status.'

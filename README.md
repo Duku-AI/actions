@@ -15,7 +15,7 @@ Customers should pin to an immutable version tag (recommended) or to the floatin
 
 ```yaml
 # Pin to a specific release (recommended for reproducibility)
-- uses: duku-ai/actions/preview@preview/v0.1.0
+- uses: duku-ai/actions/preview@preview/v0.2.0
 
 # Pin to the floating major (auto-updates within v1.x.y; available post-1.0)
 - uses: duku-ai/actions/preview@preview/v1
@@ -34,6 +34,37 @@ Each action is versioned independently with a `<action>/v<semver>` tag scheme:
 
 Releases are **fully automated** off the `version` field in each action's
 `package.json` in chrome-worker. There is no manual `release.sh` here.
+
+### Step 0: never tag ahead of prod
+
+An action is released the moment its version bump lands on main — the
+`actions-repo-sync` workflow tags `<action>/v<version>` within a minute, and
+customers pinning that tag get it immediately. Prod platform-api is deployed
+manually and sporadically, so **a version bump for behaviour that depends on a
+platform change must not land until that change is deployed to prod.** Build the
+bump as the last commit of the stack and land it after the deploy.
+
+The actions degrade rather than fail when prod is behind, so this is about
+customers getting the behaviour the CHANGELOG promises, not about breakage.
+
+To check what prod actually has, unauthenticated (validation runs before auth,
+so no credentials are needed):
+
+```
+curl -sS https://platform.duku.ai/graphql -H 'content-type: application/json' \
+  -d '{"query":"query{subject(id:\"probe\"){enabledFeatures}}"}'
+```
+
+`GRAPHQL_VALIDATION_FAILED` naming `enabledFeatures` means prod is older than the
+action — do not land the bump. An auth error means the field exists, so prod is
+current enough. `.github/workflows/actions-schema-probe.yml` in chrome-worker
+runs this same check weekly, so the answer usually arrives before you ask.
+
+Prod's deployed tag is the SSM parameter owned by
+`infrastructure/terraform/modules/versioning/06_main.tf`. The manual deploy
+writes it out of band: `platform_version = "latest"` in terraform only seeds the
+parameter and then `ignore_changes` its value, so terraform is not the answer to
+"what is deployed".
 
 To cut a release for, e.g., `preview`:
 
