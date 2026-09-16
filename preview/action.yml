@@ -87,6 +87,11 @@ inputs:
     required: false
     default: ''
 
+  wait-for-target-seconds:
+    description: "Seconds to let the platform wait for the preview URL to actually serve before it dispatches. The preview-url resolvers above only prove a URL was published; a preview that loses the race with its own deploy is still cold when the run fires. Empty (default) dispatches immediately, exactly as before."
+    required: false
+    default: ''
+
   repository:
     description: 'Explicit "owner/repo" to attach PR metadata to when not running on a pull_request event (must be set together with pr-number). Lets non-pull_request triggers (push, deployment_status, workflow_run, repository_dispatch) post the PR comments.'
     required: false

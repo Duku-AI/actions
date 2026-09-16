@@ -48,6 +48,14 @@ All notable changes to the `preview` action will be documented in this file.
 - **`release-label` input.** Records a human-readable release name (`1.4.2`)
   alongside the commit SHA and uses it as the build version, mirroring the
   `environment` action.
+- **`wait-for-target-seconds` (opt-in).** Lets the platform wait for the
+  resolved URL to actually serve before it dispatches a run. The preview-URL
+  resolvers only prove a URL was *published* — a preview env that loses the
+  race with its own deploy is still cold when the run fires, which failed the
+  whole batch and red-flagged the PR check. Omit the input and nothing changes:
+  the field is left off the mutation and the server dispatches immediately.
+  Applies to both the PR and non-PR dispatch paths. The platform caps the
+  window; if it shortens your request, the step logs a warning saying so.
 
 - **App-version axis: per-commit build identity.** The action now stamps every
   build with the commit it came from, so observations can be told apart by

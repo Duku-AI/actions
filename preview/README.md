@@ -114,6 +114,7 @@ APIs).
 | `preview-status-context-regex` | No | *(empty)* | Regex matching a commit status context. If omitted, statuses are skipped in `auto`. |
 | `preview-comment-author-logins` | No | *(empty)* | Comma-separated bot/user logins to scan in PR comments, e.g. `vercel[bot],netlify[bot]`. If omitted, comments are skipped in `auto`. |
 | `preview-url-regex` | No | *(empty)* | Regex to extract the preview URL from provider text (Comments resolver). Defaults to a generic `http(s)` heuristic. |
+| `wait-for-target-seconds` | No | *(empty)* | Seconds to let the platform wait for the resolved URL to actually **serve** before dispatching. The resolvers above only prove a URL was *published*; a preview that loses the race with its own deploy is still cold when the run fires. Empty dispatches immediately, as before. The platform caps the window and warns in the step log if it shortens your request. |
 | `github-token` | No | *(empty)* | Token used to resolve the preview URL from GitHub APIs (Deployments / Checks / Statuses / comments). Falls back to the `GITHUB_TOKEN` env. Not required when `exploration-url` is supplied. |
 | `github-installation-id` | No | *(auto)* | Optional Duku AI GitHub App installation ID. The server auto-discovers this when the App is installed. |
 
