@@ -4,6 +4,13 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+- **Dispatch warnings from the platform are now logged.** `startExploration`
+  can return server-side notes about the accepted request (e.g. a clamped
+  field); the action previously dropped them and now logs each as a warning —
+  a behaviour change if you scrape step logs. A Platform old enough not to have
+  the field is asked again without it (nothing is shown for that run, logged at
+  info instead).
+
 - **Every request identifies the action and its version.** Requests now carry a
   `user-agent` of `duku-actions/{action}/{version}`. It lets Duku see which
   action versions are still in use — which is what decides when a compatibility

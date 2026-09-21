@@ -4,6 +4,14 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+- **Optional inputs degrade on an older Platform.** An input the Platform does
+  not have is dropped with a warning naming the upgrade, instead of failing the
+  step — `wait-for-target-seconds` is the first one covered, so on an older
+  Platform the run dispatches without waiting rather than not at all. A cold
+  preview can still red-flag that run; upgrade the Platform to get the wait.
+  Anything the Platform refuses that is not declared optional still fails the
+  step loudly.
+
 - **Every request identifies the action and its version.** Requests now carry a
   `user-agent` of `duku-actions/{action}/{version}`. It lets Duku see which
   action versions are still in use — which is what decides when a compatibility

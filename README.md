@@ -44,6 +44,13 @@ manually and sporadically, so **a version bump for behaviour that depends on a
 platform change must not land until that change is deployed to prod.** Build the
 bump as the last commit of the stack and land it after the deploy.
 
+An input listed in `gqlRequest`'s `optionalInputFields` is dropped with a
+warning on an older Platform rather than failing the step — but only the inputs
+actually listed there. Adding a field to a mutation does not opt it in, so the
+rule above still binds for anything you have not declared optional, and for
+behaviour with no older equivalent at all (e.g. the `environment` action's
+`product-id` + `environment` mode).
+
 The actions degrade rather than fail when prod is behind, so this is about
 customers getting the behaviour the CHANGELOG promises, not about breakage.
 
