@@ -4,6 +4,11 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-17
+
+_0.3.0 was never published: `preview` jumps 0.2.0 → 0.4.0 so both actions share
+one version line._
+
 - **Optional inputs degrade on an older Platform.** An input the Platform does
   not have is dropped with a warning naming the upgrade, instead of failing the
   step — `wait-for-target-seconds` is the first one covered, so on an older
@@ -30,7 +35,7 @@ All notable changes to the `preview` action will be documented in this file.
   app-version fields are also an entitlement, so a Platform new enough to
   understand them can still refuse them for your org. The action now recognises
   that refusal, warns naming `version-axis` and the fix (ask Duku to enable it),
-  and records the build the pre-0.3.0 way rather than failing the step — the
+  and records the build the pre-0.4.0 way rather than failing the step — the
   same fallback as the too-old Platform below, with a different cause. A
   `FORBIDDEN` that names no reason still fails the step.
 
@@ -38,7 +43,7 @@ All notable changes to the `preview` action will be documented in this file.
   described below (`commitSha`, `lineage`, environments) only exist on a
   Platform that has the axis deployed, and a pinned action version can outrun
   it. Rather than failing the step, the action now
-  notices the refusal, warns, and records the build the pre-0.3.0 way — one
+  notices the refusal, warns, and records the build the pre-0.4.0 way — one
   Target per PR (`github:repo={repo}:pr={n}`), no commit SHA, no release
   history. Everything else in the run is unchanged. One consequence to expect
   on the Platform upgrade: that per-PR Target is a different row from the

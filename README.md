@@ -15,7 +15,7 @@ Customers should pin to an immutable version tag (recommended) or to the floatin
 
 ```yaml
 # Pin to a specific release (recommended for reproducibility)
-- uses: duku-ai/actions/preview@preview/v0.2.0
+- uses: duku-ai/actions/preview@preview/v0.4.0
 
 # Pin to the floating major (auto-updates within v1.x.y; available post-1.0)
 - uses: duku-ai/actions/preview@preview/v1
