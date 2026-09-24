@@ -4,6 +4,16 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-24
+
+- **Scheduled and manual runs no longer fail when the repository hasn't
+  changed.** On `schedule` / `workflow_dispatch` the build was keyed on the
+  workflow repo's HEAD commit, so a nightly run with a new `release-label` on a
+  night nobody had pushed failed with "This commit already has a release
+  labelled …". When you pass `release-label`, those runs are now keyed on it:
+  a new label is a new release, the same label again reuses the existing one.
+  Derived labels, `push` and `pull_request` runs are unchanged.
+
 ## [0.4.0] - 2026-09-17
 
 - **Dispatch warnings from the platform are now logged.** `startExploration`

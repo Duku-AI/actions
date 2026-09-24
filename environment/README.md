@@ -16,7 +16,7 @@ Viewport → Product settings → Environments; the action names it.
 ## Usage
 
 ```yaml
-- uses: duku-ai/actions/environment@environment/v0.4.0
+- uses: duku-ai/actions/environment@environment/v0.4.1
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.DUKU_PRODUCT_ID }}
@@ -59,10 +59,51 @@ rename path in Viewport — a re-sent label never silently overwrites history.
 A SHA is only recorded when the event vouches for one — `push` and
 `pull_request` do. On `schedule` and `workflow_dispatch` the build is recorded
 without one rather than with a guessed one, since `GITHUB_SHA` there describes
-the workflow's ref and not necessarily what is deployed. Repeat triggers on the
-same commit collapse onto the same build, so a nightly sweep against a branch
-that has already been pushed reuses that push's build rather than minting a
-SHA-less duplicate.
+the workflow's ref and not necessarily what is deployed. Without an explicit
+`release-label`, repeat triggers on the same commit collapse onto the same
+build, so a nightly sweep against a branch that has already been pushed reuses
+that push's build rather than minting a SHA-less duplicate. With one, the label
+is the build — see below.
+
+## Nightly runs against a release you name
+
+When what's deployed isn't the commit your workflow runs on — the app
+redeploys many times a day, a separate job resets test data first, or the
+workflow lives in a different repo from the app — trigger the action from your
+own job and pass the deployed build as `release-label`:
+
+```yaml
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        required: true
+
+jobs:
+  explore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: duku-ai/actions/environment@environment/v0.4.1
+        with:
+          api-key: ${{ secrets.PLATFORM_API_KEY }}
+          product-id: ${{ vars.DUKU_PRODUCT_ID }}
+          environment: staging
+          release-label: ${{ inputs.release }}
+          release-label-from: input
+```
+
+```sh
+gh workflow run duku-nightly.yml -f release=2026.09.24-build.812
+```
+
+On `schedule` / `workflow_dispatch` an explicit `release-label` is what
+identifies the build: each new label is a new release in Viewport, and the
+same label again re-runs against the release it already names, including one
+a push recorded. Nothing needs to change in the repository between runs.
+`release-label-from: input` makes a run with no label fail before anything is
+recorded, instead of falling back to this repository's `git describe`. The full
+workflow, including a `repository_dispatch` trigger for CIs without the `gh` CLI, is in
+[`examples/environment-nightly.yml`](./examples/environment-nightly.yml).
 
 ## Linking PR previews to what landed
 
@@ -86,7 +127,7 @@ jobs:
       contents: read
       pull-requests: read     # resolve which PRs the pushed commits came from
     steps:
-      - uses: duku-ai/actions/environment@environment/v0.4.0
+      - uses: duku-ai/actions/environment@environment/v0.4.1
         with:
           api-key: ${{ secrets.PLATFORM_API_KEY }}
           product-id: ${{ vars.DUKU_PRODUCT_ID }}
@@ -182,7 +223,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: duku-ai/actions/environment@environment/v0.4.0
+      - uses: duku-ai/actions/environment@environment/v0.4.1
         with:
           api-key: ${{ secrets.PLATFORM_API_KEY }}
           product-id: ${{ vars.DUKU_PRODUCT_ID }}
@@ -275,6 +316,7 @@ your organisation before migrating, or keep `target-id` until then.
 
 - [`examples/environment-push.yml`](./examples/environment-push.yml) — minimal `push`-trigger workflow
 - [`examples/environment-pull-request.yml`](./examples/environment-pull-request.yml) — PR gate against a fixed environment
+- [`examples/environment-nightly.yml`](./examples/environment-nightly.yml) — nightly run against a release you name, triggered from your own job
 
 ## Status
 
