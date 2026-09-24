@@ -4,6 +4,8 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-17
+
 - **Dispatch warnings from the platform are now logged.** `startExploration`
   can return server-side notes about the accepted request (e.g. a clamped
   field); the action previously dropped them and now logs each as a warning —
