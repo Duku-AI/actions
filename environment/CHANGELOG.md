@@ -4,6 +4,11 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+- **The running comment links to Duku's settings to install or link the GitHub
+  App.** It used to point at the GitHub App's page. PR comments and checks need
+  the installation linked to your organisation, which happens in Duku's
+  settings. Without a dashboard URL it still points at GitHub.
+
 ## [0.4.1] - 2026-09-24
 
 - **Scheduled and manual runs no longer fail when the repository hasn't
