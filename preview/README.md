@@ -50,15 +50,21 @@ the App on the repo for the comments to land.
 
 **Check run (merge gating).** On PR paths the Platform also manages a
 GitHub **check run** named `Duku Exploration (<product name>)` on the PR
-head commit: created `in_progress` when the exploration starts, concluded
-`success` when the batch completes, `failure` when it fails, and
-`timed_out` if it never reaches a terminal state within the Platform-side
-deadline (2 hours by default, measured from exploration start). The check
-reflects whether the exploration **ran to completion**, not whether it
-found zero issues — the issues seen on the PR (new-vs-pre-existing, with
-the ignored count disclosed) are listed in the check output just like the
-PR comment, and a batch that completes with issues observed still
-concludes `success`. The check is written server-side by
+head commit: created `in_progress` when the exploration starts, and
+concluded once it finishes and its findings are recorded:
+
+- `neutral` when the PR has **new issues** that nobody has ignored or
+  resolved. A resolved issue that this PR hits again counts again.
+- `success` when there are none.
+- `neutral` when we couldn't verify anything, or verification didn't finish
+  within the Platform-side deadline (2 hours by default, measured from
+  exploration start). `neutral` doesn't block the merge: a problem on our
+  side never holds up your PR.
+
+Runs we lose to an infrastructure fault don't fail the check; the output
+says how many runs it verified. The issues seen on the PR (new vs
+pre-existing, with the ignored count disclosed) are listed in the check
+output just like the PR comment. The check is written server-side by
 the Duku AI GitHub App; the action itself never *writes* to the Checks
 API (the `checks: read` permission below is only for the preview-URL
 resolver). See [Required check](#required-check) to gate merges on it.
@@ -200,13 +206,9 @@ Semantics worth knowing:
 - **Renaming the product renames the check** — update the branch
   protection rule after a rename, or merges block on a check that will
   never report again.
-- **Wedged explorations conclude `timed_out` after the deadline and block
-  the merge by design** (fail closed): an unfinished exploration must not
-  satisfy a required check. Re-run the workflow — a fresh exploration
-  supersedes the timed-out check. (Force-failing the stuck batch flips
-  the check to `failure`; it tidies the batch but does not unblock the
-  merge.) If the batch does finish later, the check re-converges to the
-  real result automatically.
+- **Wedged explorations conclude `neutral` after the deadline**, so they
+  don't block the merge. If the exploration finishes later, the check
+  re-converges to the real result automatically.
 - **A force-push while an exploration is running** leaves the new head's
   check as "Expected — waiting" until the action runs again on the new
   commit (standard required-check semantics). A force-push in the window
@@ -282,19 +284,21 @@ seconds of the workflow run; if the first create attempt failed it can
 take ~15 minutes for the Platform's reconciler to create it, and after
 7 days it stops retrying entirely (old PRs need a workflow re-run).
 
-**Check concluded `timed_out`.** The exploration didn't reach a terminal
-state within the Platform's deadline. Blocking the merge here is
-deliberate. Re-run the workflow — a fresh exploration supersedes the
-timed-out check. If the batch finishes later, the check flips to the
-real result on its own. (Force-failing the stuck batch marks it
-`failure`, which still blocks; it's cleanup, not an unblock.)
+**Check concluded `neutral` with "Verification didn't finish".** The
+exploration didn't finish within the Platform's deadline. It doesn't block
+the merge. If the exploration finishes later, the check flips to the real
+result on its own.
 
-**Check briefly shows `failure`, then flips to `success`.** A dispatch
-handshake timing out can mark the batch failed while runs actually
-proceed; when the runs finish, the Platform corrects the batch and
-re-concludes the check automatically, and the merge unblocks without
-intervention. (A CI job reading `batch(id) { status }` stops at the
-first `failed` and never sees the correction.)
+**Check stays `in_progress` for a while after the exploration finishes.**
+The check waits until every run's findings are recorded, so it can't pass
+a PR that its last run is about to fail. That usually takes seconds; if a
+run's findings are lost it can take about half an hour, after which that
+run counts as unverified.
+
+**Check changes after it concluded.** A concluded check is re-evaluated
+when its inputs move: findings from a run recorded late, or a correction
+to the exploration's outcome. It can go from `success` to `neutral`, or
+back.
 
 **Duplicate check runs on one commit.** Concurrent create paths (the
 kickoff hook racing a reconciler retry) can rarely create an extra run;

@@ -9,6 +9,14 @@ All notable changes to the `environment` action will be documented in this file.
   the installation linked to your organisation, which happens in Duku's
   settings. Without a dashboard URL it still points at GitHub.
 
+- **A PR comment no longer flips back to "running".** If the exploration
+  failed to start almost immediately, Duku could post the final comment
+  before the action wrote its "Exploration in progress" one, which then
+  overwrote it until Duku re-posted the result shortly after. The action now
+  leaves the comment alone when it already holds this run's results, and
+  says so in the step log. A comment holding an earlier push's results is
+  still replaced as before.
+
 ## [0.4.1] - 2026-09-24
 
 - **Scheduled and manual runs no longer fail when the repository hasn't
