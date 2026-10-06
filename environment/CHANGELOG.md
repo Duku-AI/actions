@@ -4,6 +4,13 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-09-24
+
+- **Runs on Node 24.** GitHub removed Node 20 from Actions runners, which were
+  force-running this action on Node 24 with a deprecation warning naming it.
+  The action now declares `node24`, so the warning is gone. No input or
+  behaviour change.
+
 - **The running comment links to Duku's settings to install or link the GitHub
   App.** It used to point at the GitHub App's page. PR comments and checks need
   the installation linked to your organisation, which happens in Duku's

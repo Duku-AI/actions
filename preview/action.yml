@@ -138,5 +138,5 @@ outputs:
     description: "Which resolver produced the preview URL: deployments, checks, statuses, comments, or override when exploration-url was set. Empty when no URL was resolved."
 
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'dist/index.js'

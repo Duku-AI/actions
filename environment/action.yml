@@ -145,5 +145,5 @@ outputs:
     description: 'ID of the sticky PR comment posted by the action (only set when invoked on a pull_request event with a github-token)'
 
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'dist/index.js'

@@ -23,7 +23,7 @@ permissions:
   pull-requests: write   # required to post the sticky PR comment
   deployments: read      # required for preview URL resolution
 
-- uses: duku-ai/actions/preview@preview/v0.4.0
+- uses: duku-ai/actions/preview@preview/v0.4.1
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
@@ -32,7 +32,7 @@ permissions:
 ### With Vercel Deployment Protection
 
 ```yaml
-- uses: duku-ai/actions/preview@preview/v0.4.0
+- uses: duku-ai/actions/preview@preview/v0.4.1
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
@@ -232,7 +232,7 @@ push, and the run would attribute another build's behaviour to this commit.
 Opt in explicitly if you want it anyway:
 
 ```yaml
-- uses: duku-ai/actions/preview@preview/v0.4.0
+- uses: duku-ai/actions/preview@preview/v0.4.1
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
@@ -247,7 +247,7 @@ Opt in explicitly if you want it anyway:
 ## Troubleshooting
 
 **Action not found.** Confirm you're pinning a tag that exists, e.g.
-`duku-ai/actions/preview@preview/v0.4.0`. The floating major
+`duku-ai/actions/preview@preview/v0.4.1`. The floating major
 (`preview/v1`) is only published once a stable `1.x` release is cut.
 
 **API connection fails.** Verify `api-url` is reachable from GitHub

@@ -16,7 +16,7 @@ Viewport → Product settings → Environments; the action names it.
 ## Usage
 
 ```yaml
-- uses: duku-ai/actions/environment@environment/v0.4.1
+- uses: duku-ai/actions/environment@environment/v0.4.2
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.DUKU_PRODUCT_ID }}
@@ -83,7 +83,7 @@ jobs:
   explore:
     runs-on: ubuntu-latest
     steps:
-      - uses: duku-ai/actions/environment@environment/v0.4.1
+      - uses: duku-ai/actions/environment@environment/v0.4.2
         with:
           api-key: ${{ secrets.PLATFORM_API_KEY }}
           product-id: ${{ vars.DUKU_PRODUCT_ID }}
@@ -127,7 +127,7 @@ jobs:
       contents: read
       pull-requests: read     # resolve which PRs the pushed commits came from
     steps:
-      - uses: duku-ai/actions/environment@environment/v0.4.1
+      - uses: duku-ai/actions/environment@environment/v0.4.2
         with:
           api-key: ${{ secrets.PLATFORM_API_KEY }}
           product-id: ${{ vars.DUKU_PRODUCT_ID }}
@@ -223,7 +223,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: duku-ai/actions/environment@environment/v0.4.1
+      - uses: duku-ai/actions/environment@environment/v0.4.2
         with:
           api-key: ${{ secrets.PLATFORM_API_KEY }}
           product-id: ${{ vars.DUKU_PRODUCT_ID }}

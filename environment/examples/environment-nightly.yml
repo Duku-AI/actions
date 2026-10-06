@@ -37,7 +37,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: duku-ai/actions/environment@environment/v0.4.1
+      - uses: duku-ai/actions/environment@environment/v0.4.2
         with:
           api-key: ${{ secrets.PLATFORM_API_KEY }}
           product-id: ${{ vars.DUKU_PRODUCT_ID }}

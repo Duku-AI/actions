@@ -4,6 +4,13 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-24
+
+- **Runs on Node 24.** GitHub removed Node 20 from Actions runners, which were
+  force-running this action on Node 24 with a deprecation warning naming it.
+  The action now declares `node24`, so the warning is gone. No input or
+  behaviour change.
+
 ## [0.4.0] - 2026-09-17
 
 _0.3.0 was never published: `preview` jumps 0.2.0 → 0.4.0 so both actions share
