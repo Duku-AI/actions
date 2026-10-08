@@ -4,6 +4,12 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-07
+
+- **`credential-set` input.** Log the exploration in as one of the product's
+  credential sets, by name or ID. An unknown set fails the step rather than
+  falling back to the default login. Leaving it empty behaves as before.
+
 ## [0.4.1] - 2026-09-24
 
 - **Runs on Node 24.** GitHub removed Node 20 from Actions runners, which were

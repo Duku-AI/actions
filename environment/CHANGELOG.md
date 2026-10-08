@@ -4,6 +4,11 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-07
+
+_No input or behaviour change: released alongside preview 0.5.0 so both actions
+keep one version line._
+
 ## [0.4.2] - 2026-09-24
 
 - **Runs on Node 24.** GitHub removed Node 20 from Actions runners, which were

@@ -23,7 +23,7 @@ permissions:
   pull-requests: write   # required to post the sticky PR comment
   deployments: read      # required for preview URL resolution
 
-- uses: duku-ai/actions/preview@preview/v0.4.1
+- uses: duku-ai/actions/preview@preview/v0.5.0
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
@@ -32,7 +32,7 @@ permissions:
 ### With Vercel Deployment Protection
 
 ```yaml
-- uses: duku-ai/actions/preview@preview/v0.4.1
+- uses: duku-ai/actions/preview@preview/v0.5.0
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
@@ -121,6 +121,7 @@ APIs).
 | `preview-comment-author-logins` | No | *(empty)* | Comma-separated bot/user logins to scan in PR comments, e.g. `vercel[bot],netlify[bot]`. If omitted, comments are skipped in `auto`. |
 | `preview-url-regex` | No | *(empty)* | Regex to extract the preview URL from provider text (Comments resolver). Defaults to a generic `http(s)` heuristic. |
 | `wait-for-target-seconds` | No | *(empty)* | Seconds to let the platform wait for the resolved URL to actually **serve** before dispatching. The resolvers above only prove a URL was *published*; a preview that loses the race with its own deploy is still cold when the run fires. Empty dispatches immediately, as before. The platform caps the window and warns in the step log if it shortens your request. |
+| `credential-set` | No | *(empty)* | The credential set to log in with, by name or ID, from this product's sets. An unknown set fails the step; it never falls back to the default. Empty uses the product's default login. Ignored when `run-exploration` is false. |
 | `github-token` | No | *(empty)* | Token used to resolve the preview URL from GitHub APIs (Deployments / Checks / Statuses / comments). Falls back to the `GITHUB_TOKEN` env. Not required when `exploration-url` is supplied. |
 | `github-installation-id` | No | *(auto)* | Optional Duku AI GitHub App installation ID. The server auto-discovers this when the App is installed. |
 
@@ -232,7 +233,7 @@ push, and the run would attribute another build's behaviour to this commit.
 Opt in explicitly if you want it anyway:
 
 ```yaml
-- uses: duku-ai/actions/preview@preview/v0.4.1
+- uses: duku-ai/actions/preview@preview/v0.5.0
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
@@ -247,7 +248,7 @@ Opt in explicitly if you want it anyway:
 ## Troubleshooting
 
 **Action not found.** Confirm you're pinning a tag that exists, e.g.
-`duku-ai/actions/preview@preview/v0.4.1`. The floating major
+`duku-ai/actions/preview@preview/v0.5.0`. The floating major
 (`preview/v1`) is only published once a stable `1.x` release is cut.
 
 **API connection fails.** Verify `api-url` is reachable from GitHub

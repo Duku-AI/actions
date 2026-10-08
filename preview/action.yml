@@ -92,6 +92,11 @@ inputs:
     required: false
     default: ''
 
+  credential-set:
+    description: "Optional: the credential set to log in with, by name or ID, from this product's sets. An unknown set fails the step; it never falls back to the default. Ignored when run-exploration is false."
+    required: false
+    default: ''
+
   repository:
     description: 'Explicit "owner/repo" to attach PR metadata to when not running on a pull_request event (must be set together with pr-number). Lets non-pull_request triggers (push, deployment_status, workflow_run, repository_dispatch) post the PR comments.'
     required: false
