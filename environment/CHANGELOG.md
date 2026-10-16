@@ -15,6 +15,11 @@ All notable changes to the `environment` action will be documented in this file.
   anything else. With `commit` the label is never derived from the checkout,
   so pass `release-label`. Needs `github-token` with `contents: read`; refused
   on `push` / `pull_request`, where GitHub already names the commit.
+- **The running PR comment carries the new comment markers.** Duku now marks
+  its sticky PR comment `duku-change-request-comment:v1` (and batch results
+  `duku-batch-result:v2`). The action finds a comment carrying either the new
+  or the old markers and writes both, so it keeps updating the same comment
+  whichever Platform version wrote it. No input change.
 
 ## [0.5.0] - 2026-10-07
 

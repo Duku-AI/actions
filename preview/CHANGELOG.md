@@ -4,6 +4,11 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+- **Sends the pull request as `changeRequest`.** The Platform's provider-neutral
+  field replaces `githubRepository` / `githubPrNumber`, and carries the PR head
+  SHA. An older Platform that does not know the field gets the legacy fields
+  instead, so the run starts either way. No input change.
+
 ## [0.5.0] - 2026-10-07
 
 - **`credential-set` input.** Log the exploration in as one of the product's
