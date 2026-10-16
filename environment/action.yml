@@ -32,6 +32,11 @@ inputs:
     required: false
     default: 'package.json'
 
+  commit:
+    description: 'The deployed commit, as a tag, branch or SHA, for runs where GitHub names none (workflow_dispatch, schedule). Looked up in this repository and recorded as the build''s verified commit; a commit GitHub can''t find fails the step. A bare SHA must be on the default branch (pass a tag or branch otherwise). Disables `release-label-from`, so pass `release-label`. Needs `github-token` with `contents: read`. Not allowed on push / pull_request, where GitHub already names the commit.'
+    required: false
+    default: ''
+
   target-id:
     description: 'DEPRECATED: pre-created environment target ID from Viewport. Runs are not attributed to a release — use product-id + environment instead. Mutually exclusive with them.'
     required: false
@@ -73,7 +78,7 @@ inputs:
     default: ''
 
   github-token:
-    description: 'GitHub token. On a pull_request event it posts the sticky "running" PR comment (needs pull-requests: write). On a push it resolves which PRs the pushed commits came from, so a PR''s preview builds can be linked to the build that shipped (needs pull-requests: read). Falls back to GITHUB_TOKEN from env if unset. Optional on both paths — without it the comment and the link are skipped, never failed. Unused on schedule / workflow_dispatch.'
+    description: 'GitHub token. On a pull_request event it posts the sticky "running" PR comment (needs pull-requests: write). On a push it resolves which PRs the pushed commits came from, so a PR''s preview builds can be linked to the build that shipped (needs pull-requests: read). Falls back to GITHUB_TOKEN from env if unset. Optional on both paths — without it the comment and the link are skipped, never failed. Required with `commit`, to look it up (needs contents: read).'
     required: false
     default: ''
 

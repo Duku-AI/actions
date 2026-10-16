@@ -4,6 +4,18 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+- **New `commit` input records the deployed commit on manual and scheduled
+  runs.** `workflow_dispatch` and `schedule` runs used to record releases with
+  no commit, since `GITHUB_SHA` there isn't necessarily what's deployed. Pass
+  the deployed tag, branch or SHA as `commit` and the action looks it up in
+  this repository through GitHub and records the full SHA, which also lets
+  `wait-for-deployment` work on those runs. A commit GitHub can't find fails
+  the step before anything is recorded. A bare SHA must be on the default
+  branch, since GitHub also serves fork-only commits; pass a tag or branch for
+  anything else. With `commit` the label is never derived from the checkout,
+  so pass `release-label`. Needs `github-token` with `contents: read`; refused
+  on `push` / `pull_request`, where GitHub already names the commit.
+
 ## [0.5.0] - 2026-10-07
 
 _No input or behaviour change: released alongside preview 0.5.0 so both actions

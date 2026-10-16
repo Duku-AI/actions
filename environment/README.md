@@ -105,6 +105,48 @@ recorded, instead of falling back to this repository's `git describe`. The full
 workflow, including a `repository_dispatch` trigger for CIs without the `gh` CLI, is in
 [`examples/environment-nightly.yml`](./examples/environment-nightly.yml).
 
+## Recording the deployed commit on a manual run
+
+A `workflow_dispatch` or `schedule` run records no commit, because
+`GITHUB_SHA` there is whatever the workflow ran on, not what is deployed. When
+you know what is deployed, pass it as `commit` (a tag, branch or SHA):
+
+```yaml
+permissions:
+  contents: read
+
+steps:
+  - uses: duku-ai/actions/environment@environment/v0.4.2
+    with:
+      api-key: ${{ secrets.PLATFORM_API_KEY }}
+      product-id: ${{ vars.DUKU_PRODUCT_ID }}
+      environment: staging
+      release-label: ${{ inputs.release }}
+      commit: ${{ inputs.release }}   # e.g. the tag you deployed
+      github-token: ${{ github.token }}
+```
+
+The action asks GitHub for that commit in this repository and records the
+full SHA as the build's commit, so the release shows it and `wait-for-deployment`
+has something to match. If GitHub can't find it, the step fails before anything
+is recorded.
+
+- Prefer a tag or a full SHA. A branch name records the branch's tip when the
+  action runs, which may have moved on since you deployed.
+- A bare SHA must be on the default branch: GitHub also serves commits that
+  only exist in a fork, and that is how the action tells them apart. For a
+  commit off the default branch (a release branch, a cherry-pick), pass the tag
+  or branch that holds it.
+- Pass `release-label` too. With `commit`, the label is never derived:
+  `release-label-from` reads the checked-out commit, not `commit`, and a
+  commit's label can't be changed from CI once recorded.
+- `commit` is refused on `push` / `pull_request` (and any event carrying a pull
+  request), where GitHub already names the commit.
+- A release recorded earlier under the same label without a commit stays a
+  separate release: a label alone can span commits (a `package.json` version
+  does), so Duku never attaches a commit to it after the fact. Start passing
+  `commit` before the first run of a label, not partway through.
+
 ## Linking PR previews to what landed
 
 A squash or a rebase mints a new commit, so the build a PR's preview
@@ -249,6 +291,7 @@ posts terminal results to the PR comment.
 | `release-label` | No | — | Explicit release name for this build, e.g. `1.4.2`. Wins over `release-label-from` when set. |
 | `release-label-from` | No | `git-describe` | Where the release name comes from when `release-label` is unset: `git-describe`, `git-tag`, `package-json`, or `input`. Falls back to the short SHA with a warning, never a failure. |
 | `package-json-path` | No | `package.json` | Path to package.json, relative to the checkout root. Only read when `release-label-from` is `package-json`. |
+| `commit` | No | — | The deployed commit as a tag, branch or SHA, for `workflow_dispatch` / `schedule` runs. Looked up in this repository and recorded as the build's commit; fails the step if GitHub can't find it. A bare SHA must be on the default branch. Disables label derivation, so pass `release-label`. Needs `github-token` with `contents: read`. Refused on `push` / `pull_request`. |
 | `exploration-url` | No | — | Override the URL to explore. Only valid with `target-id`; an `environment` owns its URL. |
 | `url` | No | — | **Deprecated alias for `exploration-url`.** |
 | `run-exploration` | No | `true` | Start an exploration run. |
@@ -260,7 +303,7 @@ posts terminal results to the PR comment.
 | `wait-commit-path` | No | `/` | Path appended to the environment URL on each poll (e.g. `/api/health`). |
 | `repository` | No | — | `owner/repo` to attach PR metadata to on a **non-`pull_request`** trigger (set together with `pr-number`). Lets a downstream push / dispatch job post the PR comment. |
 | `pr-number` | No | — | PR number to attach to on a non-`pull_request` trigger (set together with `repository`). |
-| `github-token` | No | `${{ github.token }}` | Used on `pull_request` events — or when `repository`+`pr-number` are supplied — to post a sticky "running" PR comment. |
+| `github-token` | No | `${{ github.token }}` | Used on `pull_request` events — or when `repository`+`pr-number` are supplied — to post a sticky "running" PR comment. Required with `commit`, to look it up. |
 | `test-runs-per-path` | No | _platform default_ | Override the number of test runs per path. |
 | `test-paths-per-goal` | No | _platform default_ | Override the number of paths per goal. |
 | `target-id` | No | — | **Deprecated.** See below. |
