@@ -179,8 +179,8 @@ jobs:
 
 Squash, merge-commit and rebase merges all work, with no strategy to configure:
 GitHub associates each of the resulting commits with the PR it came from. A
-fast-forward push of the PR branch itself records nothing — the candidate *is*
-the landed build.
+fast-forward push of the PR branch itself records the PR head as landing as
+itself, so the PR is still tied to the commit that shipped.
 
 Best effort by design. No token, a repo that withholds the commit-PR index, a
 network failure, a push carrying more than 20 commits — each logs a warning and

@@ -20,6 +20,18 @@ All notable changes to the `environment` action will be documented in this file.
   `duku-batch-result:v2`). The action finds a comment carrying either the new
   or the old markers and writes both, so it keeps updating the same comment
   whichever Platform version wrote it. No input change.
+- **A merge or rebase push records one landing per PR, as the commit that
+  contains the whole PR.** A merge push also carries the PR's own commits, and
+  each is associated with the PR, so the action recorded that the PR head landed
+  as the PR's *first* commit as well as the merge commit. It now keeps the last
+  commit in the push for each PR: the squash commit, the merge commit, or the
+  tip of a rebase. A push with more than 20 commits now keeps the newest 20, not
+  the oldest, so a long PR's merge commit is no longer the one dropped.
+- **A fast-forward push records a landing too.** A PR whose head was pushed to
+  the branch as is used to record nothing, since the head *is* the landed
+  commit, which left its tickets unable to tell the fix had shipped. It now
+  records the head as landing as itself. Needs a Platform that accepts such a
+  landing; an older one refuses it, which the action logs as a warning.
 
 ## [0.5.0] - 2026-10-07
 
