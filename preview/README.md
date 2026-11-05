@@ -42,29 +42,24 @@ permissions:
 ## Behavior
 
 **Async by design.** On `pull_request` events the action resolves the
-preview URL from GitHub, starts an exploration, and exits in seconds.
-The Platform posts a sticky "running" PR comment via the
-[Duku AI GitHub App](https://github.com/apps/duku-ai) and updates it in
-place with the final results once the exploration finishes — install
-the App on the repo for the comments to land.
+preview URL from GitHub, starts Duku's test of the pull request, and exits
+in seconds. The Platform posts one PR comment per product via the
+[Duku AI GitHub App](https://github.com/apps/duku-ai), listing each mission
+the test tried with its result, and updates it in place when the test
+finishes and on later pushes — install the App on the repo for the comments
+to land.
 
 **Check run (merge gating).** On PR paths the Platform also manages a
 GitHub **check run** named `Duku Exploration (<product name>)` on the PR
-head commit: created `in_progress` when the exploration starts, and
-concluded once it finishes and its findings are recorded:
+head commit: created when the test starts, and concluded when it finishes:
 
-- `neutral` when the PR has **new issues** that nobody has ignored or
-  resolved. A resolved issue that this PR hits again counts again.
-- `success` when there are none.
-- `neutral` when we couldn't verify anything, or verification didn't finish
-  within the Platform-side deadline (2 hours by default, measured from
-  exploration start). `neutral` doesn't block the merge: a problem on our
-  side never holds up your PR.
+- `success` when every mission and flow the test tried worked.
+- `neutral` otherwise, including a test that didn't finish within the
+  Platform-side deadline (2 hours). `neutral` doesn't block the merge: a
+  problem on our side never holds up your PR.
 
-Runs we lose to an infrastructure fault don't fail the check; the output
-says how many runs it verified. The issues seen on the PR (new vs
-pre-existing, with the ignored count disclosed) are listed in the check
-output just like the PR comment. The check is written server-side by
+The check output carries the same results as the PR comment. Issues the
+comment lists never change the check. The check is written server-side by
 the Duku AI GitHub App; the action itself never *writes* to the Checks
 API (the `checks: read` permission below is only for the preview-URL
 resolver). See [Required check](#required-check) to gate merges on it.
@@ -156,9 +151,8 @@ needs **Checks: Read & write** on its installation (new), in addition to
 the pull-request access the comment flow already uses. If your org
 installed the App before this permission existed, GitHub prompts an org
 admin to approve the update (Org Settings → GitHub Apps → Duku AI →
-Review request). Until approval the Platform warns and skips check-run
-writes, retrying for up to 7 days — approve mid-flight and recent
-explorations get their checks retroactively.
+Review request). Until approval the Platform warns and retries the
+check-run writes.
 
 ## Repository configuration
 
@@ -199,25 +193,16 @@ protection rule.
 
 Semantics worth knowing:
 
-- **Run the action once per product per commit.** The check name is
-  keyed on your Duku product, not the PR or batch, so it is stable
-  across PRs — but a second kickoff for the same product on the same
-  commit creates a new run of the same name and resets the visible
-  check to `in_progress` until it concludes.
+- **The check name is keyed on your Duku product**, not the PR or batch,
+  so it is stable across PRs.
 - **Renaming the product renames the check** — update the branch
   protection rule after a rename, or merges block on a check that will
   never report again.
-- **Wedged explorations conclude `neutral` after the deadline**, so they
-  don't block the merge. If the exploration finishes later, the check
-  re-converges to the real result automatically.
-- **A force-push while an exploration is running** leaves the new head's
-  check as "Expected — waiting" until the action runs again on the new
-  commit (standard required-check semantics). A force-push in the window
-  between the workflow starting and the Platform creating the check
-  (normally seconds, but up to ~15 minutes when the first create attempt
-  fails and the reconciler retries) can land the check on the new head
-  with results from the old code — re-run the workflow after
-  force-pushes to be safe.
+- **A test that doesn't finish concludes `neutral`** after the deadline, so
+  it doesn't block the merge.
+- **A force-push while a test is running** leaves the new head's check as
+  "Expected — waiting" until the action runs again on the new commit
+  (standard required-check semantics).
 
 ## Vercel preview URL
 
@@ -281,29 +266,9 @@ PR, a fork PR without secrets, or a force-push — re-run it);
 installed on the repo, or its Checks permission hasn't been approved by
 an org admin yet; or the check name in branch protection no longer
 matches (product renamed). Timing: the check normally appears within
-seconds of the workflow run; if the first create attempt failed it can
-take ~15 minutes for the Platform's reconciler to create it, and after
-7 days it stops retrying entirely (old PRs need a workflow re-run).
+seconds of the workflow run; if the first create attempt fails, the
+Platform retries it a few minutes later.
 
-**Check concluded `neutral` with "Verification didn't finish".** The
-exploration didn't finish within the Platform's deadline. It doesn't block
-the merge. If the exploration finishes later, the check flips to the real
-result on its own.
-
-**Check stays `in_progress` for a while after the exploration finishes.**
-The check waits until every run's findings are recorded, so it can't pass
-a PR that its last run is about to fail. That usually takes seconds; if a
-run's findings are lost it can take about half an hour, after which that
-run counts as unverified.
-
-**Check changes after it concluded.** A concluded check is re-evaluated
-when its inputs move: findings from a run recorded late, or a correction
-to the exploration's outcome. It can go from `success` to `neutral`, or
-back.
-
-**Duplicate check runs on one commit.** Concurrent create paths (the
-kickoff hook racing a reconciler retry) can rarely create an extra run;
-the Platform tracks and concludes the newest one, which is the one
-branch protection evaluates. The older run stays visible in the PR's
-Checks tab as a permanent `in_progress` leftover — ignored by branch
-protection, safe to ignore yourself.
+**Check concluded `neutral`.** A mission or flow the test tried didn't
+work, or the test didn't finish within the deadline. It doesn't block the
+merge; the check output and the PR comment list each mission's result.

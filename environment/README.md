@@ -1,9 +1,9 @@
 # Duku Environment GitHub Action
 
 Records the build a commit produced against one of your environments, then
-kicks off a Duku exploration and a test run against it and exits. **Async by
-design**: both phases run asynchronously in the Platform — the GitHub job does
-not wait for either to complete.
+kicks off a Duku exploration against it and exits. **Async by design**: the
+exploration runs asynchronously in the Platform — the GitHub job does not wait
+for it to complete.
 
 Use this action on `push`, `schedule`, `workflow_dispatch`, or `pull_request`
 events to run against long-lived environments (staging, prod canary,
@@ -185,21 +185,17 @@ itself, so the PR is still tied to the commit that shipped.
 Best effort by design. No token, a repo that withholds the commit-PR index, a
 network failure, a push carrying more than 20 commits — each logs a warning and
 the run continues. The link is a convenience for reading history, never a
-precondition for the exploration or the tests, and it is never written on a
+precondition for the exploration, and it is never written on a
 `pull_request` event, where nothing has landed yet.
 
 ## Choosing what runs
 
-Both run types fire by default. Set either to `false` to trigger only the
-other:
+The exploration runs by default. Set `run-exploration: false` to record the
+build without one.
 
 ```yaml
-    run-exploration: true   # discover the app and report new errors
-    run-tests: false        # skip the test batch on this trigger
+    run-exploration: false  # record the build, skip the exploration
 ```
-
-A common split is exploration on `push` and tests on `schedule`, so a busy
-branch is not re-testing the whole suite on every commit.
 
 ## Waiting for the deploy to catch up
 
@@ -275,8 +271,8 @@ jobs:
 
 ## Async by design
 
-Explorations and test batches regularly take 5–40 minutes each. Rather than
-burn GitHub Actions minutes polling, the action kicks off the runs and exits.
+Explorations regularly take 5–40 minutes each. Rather than
+burn GitHub Actions minutes polling, the action kicks off the run and exits.
 Terminal results appear in Viewport. On a `pull_request` event with the **Duku
 AI GitHub App** installed (<https://github.com/apps/duku-ai>), the Platform also
 posts terminal results to the PR comment.
@@ -294,8 +290,7 @@ posts terminal results to the PR comment.
 | `commit` | No | — | The deployed commit as a tag, branch or SHA, for `workflow_dispatch` / `schedule` runs. Looked up in this repository and recorded as the build's commit; fails the step if GitHub can't find it. A bare SHA must be on the default branch. Disables label derivation, so pass `release-label`. Needs `github-token` with `contents: read`. Refused on `push` / `pull_request`. |
 | `exploration-url` | No | — | Override the URL to explore. Only valid with `target-id`; an `environment` owns its URL. |
 | `url` | No | — | **Deprecated alias for `exploration-url`.** |
-| `run-exploration` | No | `true` | Start an exploration run. |
-| `run-tests` | No | `true` | Trigger the product's test cases. |
+| `run-exploration` | No | `true` | Start an exploration run. Set `false` to record the build without one. |
 | `wait-for-deployment` | No | `false` | Poll the environment URL until it serves the expected commit before dispatching. Needs the app to expose its commit on `wait-commit-header`. |
 | `wait-for-deployment-timeout-seconds` | No | `300` | How long to wait for the expected commit before failing. Must be a positive integer. |
 | `wait-for-deployment-interval-seconds` | No | `10` | Delay between deployment polls. Must be a positive integer. |
@@ -304,14 +299,9 @@ posts terminal results to the PR comment.
 | `repository` | No | — | `owner/repo` to attach PR metadata to on a **non-`pull_request`** trigger (set together with `pr-number`). Lets a downstream push / dispatch job post the PR comment. |
 | `pr-number` | No | — | PR number to attach to on a non-`pull_request` trigger (set together with `repository`). |
 | `github-token` | No | `${{ github.token }}` | Used on `pull_request` events — or when `repository`+`pr-number` are supplied — to post a sticky "running" PR comment. Required with `commit`, to look it up. |
-| `test-runs-per-path` | No | _platform default_ | Override the number of test runs per path. |
-| `test-paths-per-goal` | No | _platform default_ | Override the number of paths per goal. |
 | `target-id` | No | — | **Deprecated.** See below. |
 
 ¹ Required unless the deprecated `target-id` is used instead.
-
-Setting both `run-exploration` and `run-tests` to `false` fails the step —
-there would be nothing to trigger.
 
 ## Outputs
 
@@ -321,8 +311,6 @@ there would be nothing to trigger.
 | `release-id` | ID of the release (app version) the build landed as. Empty in `target-id` mode, which mints no release. |
 | `run-id` | ID of the exploration. Empty when `run-exploration` is `false`. |
 | `run-status` | `triggered` (running asynchronously; terminal status is in Viewport) or `skipped`. |
-| `test-run-id` | ID of the test-run batch. Empty when the product has no test cases configured, or `run-tests` is `false`. |
-| `test-run-status` | `triggered` or `skipped`. |
 | `comment-id` | ID of the sticky PR comment (only set when an exploration ran on a `pull_request` event with a `github-token`). |
 
 ## Migrating from `target-id`
@@ -350,11 +338,6 @@ help either: the Platform refuses the build this action mints against any
 endpoint while the feature is off. Ask Duku to enable it before migrating; the
 action names this whichever endpoint you try.
 
-If your product uses per-target test cases rather than durable tests, they do not
-travel to the per-commit builds this action mints, and `test-run-status` will come
-back `skipped` with a warning in the log. Ask Duku to enable durable tests for
-your organisation before migrating, or keep `target-id` until then.
-
 ## Examples
 
 - [`examples/environment-push.yml`](./examples/environment-push.yml) — minimal `push`-trigger workflow
@@ -363,7 +346,7 @@ your organisation before migrating, or keep `target-id` until then.
 
 ## Status
 
-This action is **pre-release** (`0.x`). It kicks off exploration + tests
+This action is **pre-release** (`0.x`). It kicks off an exploration
 asynchronously. `fail-on` thresholds and Check Run integration come in later
 releases — until then, gate merges on the platform-side comment / Viewport.
 

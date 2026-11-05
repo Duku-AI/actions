@@ -83,12 +83,7 @@ inputs:
     default: ''
 
   run-exploration:
-    description: 'Start an exploration run. Set false to trigger only the test batch.'
-    required: false
-    default: 'true'
-
-  run-tests:
-    description: "Trigger the target's test cases. Set false to explore only."
+    description: 'Start an exploration run. Set false to record the build without one.'
     required: false
     default: 'true'
 
@@ -117,16 +112,6 @@ inputs:
     required: false
     default: '/'
 
-  test-runs-per-path:
-    description: 'Optional override for runs per path on runAllTestCases'
-    required: false
-    default: ''
-
-  test-paths-per-goal:
-    description: 'Optional override for paths per goal on runAllTestCases'
-    required: false
-    default: ''
-
 outputs:
   target-id:
     description: 'ID of the build the run was attributed to (the minted target in environment mode, the given target in target mode).'
@@ -139,12 +124,6 @@ outputs:
 
   run-status:
     description: 'Kickoff status of the exploration: triggered (running asynchronously — see Viewport for terminal status), or skipped (run-exploration is false)'
-
-  test-run-id:
-    description: 'ID of the test-run batch (intent batch). Empty if the target has no test cases configured, or run-tests is false.'
-
-  test-run-status:
-    description: 'Kickoff status of the test-run batch: triggered (running asynchronously in Viewport), or skipped (no test cases configured, or run-tests is false)'
 
   comment-id:
     description: 'ID of the sticky PR comment posted by the action (only set when invoked on a pull_request event with a github-token)'

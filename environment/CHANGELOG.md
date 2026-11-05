@@ -4,6 +4,11 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+- **Test step removed.** The `run-tests`, `test-runs-per-path` and
+  `test-paths-per-goal` inputs and the `test-run-id` / `test-run-status`
+  outputs are gone: tests are now flows, and the platform no longer dispatches
+  test batches. A workflow that still passes those inputs gets GitHub's
+  unexpected-input warning; nothing fails.
 - **New `commit` input records the deployed commit on manual and scheduled
   runs.** `workflow_dispatch` and `schedule` runs used to record releases with
   no commit, since `GITHUB_SHA` there isn't necessarily what's deployed. Pass
