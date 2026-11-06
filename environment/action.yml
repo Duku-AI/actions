@@ -37,6 +37,11 @@ inputs:
     required: false
     default: ''
 
+  apk-path:
+    description: 'Path to the Android build to test: one .apk file, or a directory holding exactly one .apk. When set, the action uploads it, waits until Duku has checked it, records it as this build and explores it. Needs product-id.'
+    required: false
+    default: ''
+
   target-id:
     description: 'DEPRECATED: pre-created environment target ID from Viewport. Runs are not attributed to a release — use product-id + environment instead. Mutually exclusive with them.'
     required: false
@@ -123,7 +128,10 @@ outputs:
     description: 'ID of the exploration batch. Empty when run-exploration is false.'
 
   run-status:
-    description: 'Kickoff status of the exploration: triggered (running asynchronously — see Viewport for terminal status), or skipped (run-exploration is false)'
+    description: 'Kickoff status of the exploration: triggered (running asynchronously — see Viewport for terminal status), started (Android: discovery started; no run id, see Viewport), or skipped (run-exploration is false)'
+
+  build-warnings:
+    description: 'Android only: warnings about the uploaded APK (one per line). Empty without apk-path.'
 
   comment-id:
     description: 'ID of the sticky PR comment posted by the action (only set when invoked on a pull_request event with a github-token)'

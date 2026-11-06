@@ -1,0 +1,48 @@
+# Android example for the duku-ai/actions/environment action: build the APK,
+# then hand it to Duku with apk-path. Copy into .github/workflows/ in your repo
+# and adjust the Gradle task, the APK path and the product-id variable.
+#
+# On a push the build is recorded on the product's default environment (or the
+# one you name); on a pull request it lands on the PR's own pr-<number>
+# environment, which needs Preview deployments turned on for the product in
+# Viewport → Product settings → Environments.
+
+name: Duku Android
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: duku-android-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  explore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Any universal APK works; an app bundle (.aab) or split APKs do not.
+      - run: ./gradlew assembleRelease
+
+      - id: duku
+        uses: duku-ai/actions/environment@environment/v0.6.0
+        with:
+          api-key: ${{ secrets.PLATFORM_API_KEY }}
+          product-id: ${{ vars.DUKU_ANDROID_PRODUCT_ID }}
+          # One .apk, or a directory holding exactly one.
+          apk-path: app/build/outputs/apk/release
+
+      - if: steps.duku.outputs.build-warnings != ''
+        run: echo "Duku flagged this build:" && echo "${{ steps.duku.outputs.build-warnings }}"

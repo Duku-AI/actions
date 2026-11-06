@@ -12,6 +12,9 @@ Viewport → Product settings → Environments; the action names it.
 
 > For PR-preview workflows where each PR gets its own ephemeral endpoint, use
 > the [`preview`](../preview) action instead.
+>
+> For an Android app, pass the APK you built as `apk-path` — see
+> [Android builds](#android-builds).
 
 ## Usage
 
@@ -269,6 +272,53 @@ jobs:
           github-token: ${{ github.token }}
 ```
 
+## Android builds
+
+An Android product has no URL to explore: its build is the APK. Build it as
+you already do, then point `apk-path` at it — one `.apk` file, or a directory
+holding exactly one (patterns are not expanded):
+
+```yaml
+- uses: duku-ai/actions/environment@environment/v0.6.0
+  with:
+    api-key: ${{ secrets.PLATFORM_API_KEY }}
+    product-id: ${{ vars.DUKU_ANDROID_PRODUCT_ID }}
+    apk-path: app/build/outputs/apk/release
+```
+
+The action uploads the APK straight to Duku's storage (re-running a job with
+the same bytes skips the upload), waits until Duku has checked it — at most 15
+minutes — records it as this commit's build and starts an exploration on it.
+The exploration runs on emulators with the product's default device.
+
+- **Release name.** The APK's version, `versionName (versionCode)`, e.g.
+  `1.4.2 (42)`. An explicit `release-label` still wins; `release-label-from`
+  is not read.
+- **Where the build lands.** The `environment` you name, else the product's
+  default environment. On a pull request with no `environment`, the build
+  lands on the PR's own `pr-<number>` environment (fork-qualified for a fork's
+  PR), so a PR build never replaces your staging build. That needs Preview
+  deployments turned on in Viewport → Product settings → Environments; the
+  step says so when they are off.
+- **Refused builds.** Duku refuses an app bundle (`.aab`), split APKs, a build
+  over 1 GB, an unsigned or badly signed APK, one with no launchable activity,
+  and a package other than the one the product already tests. The step fails
+  with Duku's reason, and nothing is recorded or explored.
+- **Warnings.** Things worth knowing that never block a build — debuggable,
+  test-only, 32-bit-only, over 300 MB, or needing a newer Android than the
+  default device — are shown on the step and set as the `build-warnings`
+  output. So is the capture hint: a build that does not trust Duku's network
+  capture certificate still runs, but runs record only the hosts it connects
+  to, not its HTTP requests and errors. To have them captured, upload a debug
+  build that bundles the certificate in `res/raw` and trusts it in
+  `<debug-overrides>` of its network security config (Viewport → Product
+  settings → App has the certificate and the config).
+- **Exploration status.** An Android exploration has no run id: `run-status`
+  reads `started`, `run-id` stays empty, and no running PR comment is posted.
+  Follow it in Viewport.
+- **Not with Android.** `apk-path` cannot be combined with `target-id` or
+  `wait-for-deployment` — the build is live as soon as Duku has checked it.
+
 ## Async by design
 
 Explorations regularly take 5–40 minutes each. Rather than
@@ -299,6 +349,7 @@ posts terminal results to the PR comment.
 | `repository` | No | — | `owner/repo` to attach PR metadata to on a **non-`pull_request`** trigger (set together with `pr-number`). Lets a downstream push / dispatch job post the PR comment. |
 | `pr-number` | No | — | PR number to attach to on a non-`pull_request` trigger (set together with `repository`). |
 | `github-token` | No | `${{ github.token }}` | Used on `pull_request` events — or when `repository`+`pr-number` are supplied — to post a sticky "running" PR comment. Required with `commit`, to look it up. |
+| `apk-path` | No | — | Android: one `.apk` file, or a directory holding exactly one. Uploads it, waits until Duku has checked it, records it as this build and explores it. Needs `product-id`. See [Android builds](#android-builds). |
 | `target-id` | No | — | **Deprecated.** See below. |
 
 ¹ Required unless the deprecated `target-id` is used instead.
@@ -310,8 +361,9 @@ posts terminal results to the PR comment.
 | `target-id` | ID of the build the run was attributed to (the minted target in `product-id` mode, the given target in `target-id` mode). |
 | `release-id` | ID of the release (app version) the build landed as. Empty in `target-id` mode, which mints no release. |
 | `run-id` | ID of the exploration. Empty when `run-exploration` is `false`. |
-| `run-status` | `triggered` (running asynchronously; terminal status is in Viewport) or `skipped`. |
+| `run-status` | `triggered` (running asynchronously; terminal status is in Viewport), `started` (Android: discovery started, no run id; see Viewport) or `skipped`. |
 | `comment-id` | ID of the sticky PR comment (only set when an exploration ran on a `pull_request` event with a `github-token`). |
+| `build-warnings` | Android only: warnings about the uploaded APK, one per line. Empty without `apk-path`. |
 
 ## Migrating from `target-id`
 
@@ -343,6 +395,7 @@ action names this whichever endpoint you try.
 - [`examples/environment-push.yml`](./examples/environment-push.yml) — minimal `push`-trigger workflow
 - [`examples/environment-pull-request.yml`](./examples/environment-pull-request.yml) — PR gate against a fixed environment
 - [`examples/environment-nightly.yml`](./examples/environment-nightly.yml) — nightly run against a release you name, triggered from your own job
+- [`examples/environment-android.yml`](./examples/environment-android.yml) — build an APK and explore it, on push and on PRs
 
 ## Status
 

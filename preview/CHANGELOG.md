@@ -8,6 +8,11 @@ All notable changes to the `preview` action will be documented in this file.
   field replaces `githubRepository` / `githubPrNumber`, and carries the PR head
   SHA. An older Platform that does not know the field gets the legacy fields
   instead, so the run starts either way. No input change.
+- **Android products are refused up front.** A preview is a web deployment at
+  a URL, so the action now checks the product first and stops, before
+  recording anything, when it is an Android product, pointing at the
+  environment action's `apk-path` instead. Web products are unaffected, and a
+  Duku Platform that predates Android products is treated as web.
 
 ## [0.5.0] - 2026-10-07
 

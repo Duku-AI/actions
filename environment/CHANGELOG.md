@@ -37,6 +37,29 @@ All notable changes to the `environment` action will be documented in this file.
   commit, which left its tickets unable to tell the fix had shipped. It now
   records the head as landing as itself. Needs a Platform that accepts such a
   landing; an older one refuses it, which the action logs as a warning.
+- **Test an Android build with `apk-path`.** Point it at one `.apk`, or at a
+  directory holding exactly one, together with `product-id` (and optionally
+  `environment`). The action uploads the APK, waits until Duku has checked it,
+  records it as this commit's build and explores it. The release label defaults
+  to the APK's version (`versionName (versionCode)`); an explicit
+  `release-label` still wins. `apk-path` cannot be combined with `target-id` or
+  `wait-for-deployment`, and `run-tests` is skipped for Android builds. An
+  Android exploration has no run id, so `run-status` reads `started`, `run-id`
+  stays empty and no running PR comment is posted. Without `apk-path` nothing
+  changes.
+
+- **Android builds from a pull request land on the PR's own environment.** With
+  `apk-path` on a pull request and no `environment`, the build is recorded on
+  `pr-<number>` (qualified by the fork for a fork's PR) and explored there, so a
+  PR build never replaces your staging build. This needs Preview deployments
+  turned on for the product (Viewport → Product settings → Environments); the
+  step says so when they are off. Name an `environment` to land the build there
+  instead.
+
+- **New output `build-warnings` for Android builds.** It lists what to know
+  about the uploaded APK, one per line (for example a debuggable or 32-bit-only
+  build), and each warning is also shown on the step. It is empty without
+  `apk-path`.
 
 ## [0.5.0] - 2026-10-07
 

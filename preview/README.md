@@ -5,6 +5,10 @@ request and get a sticky PR comment with the top errors discovered.
 
 > For long-lived environments (staging, prod canary, customer-specific
 > deploys), use the [`environment`](../environment) action instead.
+>
+> This action is for web products only. On an Android product it stops before
+> recording anything; test an Android build with the environment action's
+> [`apk-path`](../environment#android-builds) instead.
 
 ## Status
 
