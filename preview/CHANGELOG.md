@@ -4,6 +4,19 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+- **`request-headers` and `request-secrets` inputs.** A preview behind
+  Vercel Deployment Protection, a Cloudflare Access policy or basic auth can
+  now be explored with any header it needs, for example
+  `x-vercel-protection-bypass: {{secret.vercel_bypass}}` with
+  `vercel_bypass=...` in `request-secrets`. Every secret value is masked in the
+  job log. Both are saved on the build the action records and sent only to the
+  origin the run explores. `vercel-automation-bypass-secret` keeps working;
+  do not set it together with the new inputs. A secret line with no value
+  fails the step with a note that GitHub may not have passed the secret to
+  this run (a fork's pull request, Dependabot). Needs a Platform that has
+  request headers; on an older one, setting either input fails the step with
+  an error naming the two inputs.
+
 - **Sends the pull request as `changeRequest`.** The Platform's provider-neutral
   field replaces `githubRepository` / `githubPrNumber`, and carries the PR head
   SHA. An older Platform that does not know the field gets the legacy fields

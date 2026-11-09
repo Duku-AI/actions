@@ -33,15 +33,76 @@ permissions:
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
 ```
 
-### With Vercel Deployment Protection
+### With a protected preview (request headers and secrets)
+
+A preview behind Vercel Deployment Protection, a Cloudflare Access policy or
+basic auth turns away a browser that does not send the right header. Give the
+action the headers each run sends (`request-headers`) and the secrets those
+headers reference (`request-secrets`).
+
+These two inputs need the first release of this action after
+`preview/v0.5.0` (listed under Unreleased in the [CHANGELOG](./CHANGELOG.md));
+`v0.5.0` does not have them. Until that release is tagged, keep `@preview/v0.5.0`
+with `vercel-automation-bypass-secret`.
+
+For Vercel Deployment Protection:
 
 ```yaml
-- uses: duku-ai/actions/preview@preview/v0.5.0
+# vNEXT: the first release after v0.5.0, see the note above.
+- uses: duku-ai/actions/preview@preview/vNEXT
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
-    vercel-automation-bypass-secret: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+    request-headers: |
+      x-vercel-protection-bypass: {{secret.vercel_bypass}}
+    request-secrets: |
+      vercel_bypass=${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
 ```
+
+For a Cloudflare Access service token:
+
+```yaml
+    request-headers: |
+      cf-access-client-id: {{secret.cf_client_id}}
+      cf-access-client-secret: {{secret.cf_client_secret}}
+    request-secrets: |
+      cf_client_id=${{ secrets.CF_ACCESS_CLIENT_ID }}
+      cf_client_secret=${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+```
+
+How the two inputs work:
+
+- `request-headers` takes one `Name: value` per line. A value is stored and
+  shown in plain text, so every secret part goes in a `{{secret.<name>}}`
+  reference. For `authorization`, `x-vercel-protection-bypass`,
+  `cf-access-client-id`, `cf-access-client-secret` and `x-api-key` the
+  Platform refuses anything but one reference, optionally after `Basic`,
+  `Bearer`, `Key` or `Token` (`authorization: Basic {{secret.staging_basic}}`).
+- `request-secrets` takes one `name=value` per line; a name is 1 to 64 of
+  `a-z`, `0-9` and `_`, and not `__proto__`. The action masks every value in
+  the job log. Duku stores it encrypted on this build and never returns it in
+  any read. A line with an empty value fails the step: GitHub leaves
+  `${{ secrets.NAME }}` empty when the run cannot read the secret, for example
+  on a pull request from a fork or one opened by Dependabot.
+- Both are saved on the build the action records for this commit, and each
+  run of that build sends the headers only to the origin of the URL it
+  explores, so the preview gets them and the third-party sites it loads do not.
+- A header may also reference a secret an org admin saved on the product or
+  the environment. That secret goes only to the origins saved with it (by
+  default the origin of the product's base URL or of the environment's URL);
+  on a request to any other origin the header that references it is not sent.
+- If the environment has a header or a secret of the same name as one of
+  yours, the environment's one is used.
+
+The `vercel-automation-bypass-secret` input still works: Duku turns it into
+the secret `vercel_automation_bypass` and the header
+`x-vercel-protection-bypass: {{secret.vercel_automation_bypass}}` on the same
+build. One thing changes: the header used to be sent only to previews on a
+`*.vercel.app` host, but with every request those pages made, third parties
+included. It now goes only to the origin of the URL the run explores, whatever
+its host, so a Vercel custom domain works too. Do not set the old input
+together with `request-headers` or `request-secrets` (the action warns when
+you do): move the secret into `request-secrets` and remove the old input.
 
 ## Behavior
 
@@ -107,7 +168,9 @@ APIs).
 | `run-exploration` | No | `true` | Start an exploration after registering the build. Set to `false` to register the build only. |
 | `start-run` | No | `true` | **Deprecated alias for `run-exploration`.** |
 | `release-label` | No | — | Human-readable release name for this build, e.g. `1.4.2`. Recorded alongside the commit SHA and used as the build version. |
-| `vercel-automation-bypass-secret` | No | *(empty)* | Vercel Deployment Protection bypass secret for protected previews. |
+| `request-headers` | No | *(empty)* | Headers each run of this build sends to the preview, one `Name: value` per line. Put secret parts in `{{secret.<name>}}` references. See [With a protected preview](#with-a-protected-preview-request-headers-and-secrets). |
+| `request-secrets` | No | *(empty)* | Secrets the headers reference, one `name=value` per line. Masked in the job log, stored encrypted, never returned. |
+| `vercel-automation-bypass-secret` | No | *(empty)* | Still supported: the Vercel Deployment Protection bypass secret, sent as `x-vercel-protection-bypass` to the origin of the URL the run explores. Do not set it together with `request-headers` or `request-secrets`; new workflows use those. |
 | `repository` | No | — | `owner/repo` to attach PR metadata to on a **non-`pull_request`** trigger (set together with `pr-number`). Runs the PR flow and posts both PR comments. |
 | `pr-number` | No | — | PR number to attach to on a non-`pull_request` trigger (set together with `repository`). |
 | `exploration-url` | No | _product base URL_ | Override the URL to explore. If unset and on a PR, the preview URL resolvers run; otherwise falls back to the product's base URL. When set, no `github-token` is required. |
@@ -166,7 +229,7 @@ Add the following in your repo (Settings → Secrets and variables → Actions):
 |------|------|---------|
 | `PLATFORM_API_KEY` | Secret | Duku Platform API key. |
 | `PLATFORM_PRODUCT_ID` | Variable | Duku product ID (not sensitive). |
-| `VERCEL_AUTOMATION_BYPASS_SECRET` | Secret (optional) | Vercel Deployment Protection bypass for protected previews. |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | Secret (optional) | Vercel Deployment Protection bypass for protected previews, passed in `request-secrets`. |
 
 ## Required check
 

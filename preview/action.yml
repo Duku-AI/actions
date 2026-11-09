@@ -22,7 +22,17 @@ inputs:
     required: true
 
   vercel-automation-bypass-secret:
-    description: "Optional: if set, writes target.metadata.vercelAutomationBypassSecret for Vercel Deployment Protection bypass (used by chrome-worker automation)"
+    description: "Optional, still supported: the Vercel Deployment Protection bypass secret. Duku stores it as the build's secret vercel_automation_bypass and sends it as the header x-vercel-protection-bypass, only to the origin of the URL the run explores. Do not set it together with request-headers or request-secrets; new workflows use those instead."
+    required: false
+    default: ''
+
+  request-headers:
+    description: "Optional: headers the runs of this build send to the preview, one 'Name: value' per line. A value is stored and shown in plain text, so put every secret part in a {{secret.<name>}} reference to a request-secrets entry, e.g. 'x-vercel-protection-bypass: {{secret.vercel_bypass}}'. Each header is sent only to the origin of the URL the run explores. A header of the same name on the environment is used instead."
+    required: false
+    default: ''
+
+  request-secrets:
+    description: "Optional: secrets the request headers reference, one 'name=value' per line (name: 1 to 64 of a-z, 0-9 and _, not __proto__). Every value is masked in the job log, stored encrypted, never returned by any read, and sent only to the origin of the URL the run explores."
     required: false
     default: ''
 
