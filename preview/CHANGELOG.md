@@ -4,28 +4,55 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+This is `1.0.0`: the action now records the build through the antidote CLI.
+
+- **Runs `antidote record-preview`.** The action reads GitHub's context as
+  before (the pull request, its head, the preview URL), then runs
+  `npx --yes @getantidote/cli@2 record-preview` and copies its result into the
+  outputs, as Antidote's GitLab component does. The server records the build and
+  starts the test, so GitHub and GitLab get the same fixes at once.
+- **BREAKING CHANGE:** the runner needs Node 22.4 or newer with `npx` (the
+  CLI's minimum). Unless the runner's Node is that new, add
+  `actions/setup-node@v4` with `node-version: 22` before the action. Windows
+  runners are not supported: the step fails before calling the CLI.
+- **BREAKING CHANGE:** `repository` + `pr-number` need `github-token`. The
+  action reads the pull request's head commit and branch from GitHub, and
+  fails the step when it cannot, instead of recording the workflow's own
+  commit and branch as the pull request's.
+- **BREAKING CHANGE:** a run with no pull request is accepted only on `push`.
+  On any other event (`workflow_run`, `deployment_status`, `schedule`, ...)
+  GITHUB_SHA names the workflow's commit, so the step fails before any call;
+  name the pull request with `repository` and `pr-number`.
+- **`exploration-url` is used only when a run starts.** With
+  `run-exploration: false` the build is recorded without it.
+- **Sign in with a service identity.** New `service-identity` input (with
+  optional `oidc-audience`): the job's GitHub OIDC token is exchanged for an
+  Antidote session, so no secret is stored. The job needs
+  `permissions: id-token: write`. `api-key` still works and is no longer
+  required; set one of the two.
+- **BREAKING CHANGE:** `run-id` now names the agentic execution the build
+  started (an agentic pull request test on a pull request), and `run-status`
+  is `triggered` or `skipped`. `exploration-batch-id` is always empty.
+- **The preview URL source is recorded as found.** A URL found by the
+  deployments, checks, statuses or comments resolver is stored with that
+  source, not as `override`.
+- **Deprecated, still accepted:** `vercel-automation-bypass-secret` is sent as
+  the secret `vercel_automation_bypass` with the header
+  `x-vercel-protection-bypass`, with a warning, and ignored when
+  `request-headers` or `request-secrets` is set. `auth-url` and
+  `github-installation-id` are ignored, with a warning.
+- **Android products** are still refused before anything is recorded; the
+  Platform refuses them now.
+
 - **`request-headers` and `request-secrets` inputs.** A preview behind
   Vercel Deployment Protection, a Cloudflare Access policy or basic auth can
   now be explored with any header it needs, for example
   `x-vercel-protection-bypass: {{secret.vercel_bypass}}` with
   `vercel_bypass=...` in `request-secrets`. Every secret value is masked in the
   job log. Both are saved on the build the action records and sent only to the
-  origin the run explores. `vercel-automation-bypass-secret` keeps working;
-  do not set it together with the new inputs. A secret line with no value
-  fails the step with a note that GitHub may not have passed the secret to
-  this run (a fork's pull request, Dependabot). Needs a Platform that has
-  request headers; on an older one, setting either input fails the step with
-  an error naming the two inputs.
-
-- **Sends the pull request as `changeRequest`.** The Platform's provider-neutral
-  field replaces `githubRepository` / `githubPrNumber`, and carries the PR head
-  SHA. An older Platform that does not know the field gets the legacy fields
-  instead, so the run starts either way. No input change.
-- **Android products are refused up front.** A preview is a web deployment at
-  a URL, so the action now checks the product first and stops, before
-  recording anything, when it is an Android product, pointing at the
-  environment action's `apk-path` instead. Web products are unaffected, and a
-  Duku Platform that predates Android products is treated as web.
+  origin the run explores. A secret line with no value fails the step with a
+  note that GitHub may not have passed the secret to this run (a fork's pull
+  request, Dependabot).
 
 ## [0.5.0] - 2026-10-07
 

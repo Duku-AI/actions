@@ -12,10 +12,24 @@ request and get a sticky PR comment with the top errors discovered.
 
 ## Status
 
-This action is **pre-release** (`0.x`). The orchestrated PR flow, preview
-URL resolution, and Vercel Deployment Protection bypass are stable; the
-public input/output surface may still tighten before `1.0`. See
-[`CHANGELOG.md`](./CHANGELOG.md) for the version history.
+This action is **pre-release** (`0.x`). The next release, `1.0.0` (listed
+under Unreleased in the [CHANGELOG](./CHANGELOG.md), shown below as `vNEXT`),
+records the build through the [antidote CLI](../../apps/cli/duku/README.md)
+(`npx --yes @getantidote/cli@2 record-preview`), as Antidote's GitLab component
+does. So the runner needs:
+
+- **Node 22.4 or newer, with `npx`**: the CLI's minimum (`engines` in its
+  `package.json`). Unless the runner's own Node is that new, add this step
+  before the action:
+
+  ```yaml
+  - uses: actions/setup-node@v4
+    with:
+      node-version: 22
+  ```
+
+- **Linux or macOS.** The action does not run on Windows runners: it stops
+  before calling the CLI and says so.
 
 ## Usage
 
@@ -24,7 +38,6 @@ public input/output surface may still tighten before `1.0`. See
 ```yaml
 permissions:
   contents: read
-  pull-requests: write   # required to post the sticky PR comment
   deployments: read      # required for preview URL resolution
 
 - uses: duku-ai/actions/preview@preview/v0.5.0
@@ -32,6 +45,30 @@ permissions:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
 ```
+
+### Sign in with a service identity (no stored secret)
+
+From `vNEXT`, the action can sign in with the job's GitHub OIDC token instead
+of an API key. An org admin creates a service identity in Viewport → Settings →
+Service identities, with a trust rule for
+`https://token.actions.githubusercontent.com` and your repository; give its id
+to the action and let the job request a token:
+
+```yaml
+permissions:
+  contents: read
+  deployments: read
+  id-token: write          # the job's OIDC token, exchanged for an Antidote session
+
+- uses: duku-ai/actions/preview@preview/vNEXT
+  with:
+    service-identity: svc_...
+    product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
+```
+
+Set `api-key` or `service-identity`, not both. `oidc-audience` sets the
+token's audience when the trust rule expects another one; by default it is the
+Platform's origin, which is what a trust rule made in Viewport expects.
 
 ### With a protected preview (request headers and secrets)
 
@@ -94,15 +131,13 @@ How the two inputs work:
 - If the environment has a header or a secret of the same name as one of
   yours, the environment's one is used.
 
-The `vercel-automation-bypass-secret` input still works: Duku turns it into
-the secret `vercel_automation_bypass` and the header
-`x-vercel-protection-bypass: {{secret.vercel_automation_bypass}}` on the same
-build. One thing changes: the header used to be sent only to previews on a
-`*.vercel.app` host, but with every request those pages made, third parties
-included. It now goes only to the origin of the URL the run explores, whatever
-its host, so a Vercel custom domain works too. Do not set the old input
-together with `request-headers` or `request-secrets` (the action warns when
-you do): move the secret into `request-secrets` and remove the old input.
+The `vercel-automation-bypass-secret` input is deprecated but still works:
+the action sends it as the secret `vercel_automation_bypass` with the header
+`x-vercel-protection-bypass: {{secret.vercel_automation_bypass}}`, and warns.
+The header goes only to the origin of the URL the run explores, whatever its
+host, so a Vercel custom domain works too. When `request-headers` or
+`request-secrets` is set the old input is ignored, with a warning: move the
+secret into `request-secrets` and remove the old input.
 
 ## Behavior
 
@@ -145,33 +180,32 @@ On `push`, `schedule`, and `workflow_dispatch` triggers the action starts
 an exploration and exits — no sticky comment is posted, because there is
 no PR to comment on.
 
-To post the PR comments from a **non-`pull_request`** trigger (e.g. a
+To test a pull request from a **non-`pull_request`** trigger (e.g. a
 deploy step that runs downstream of a PR event on `push` /
 `deployment_status` / `workflow_run` / `repository_dispatch`), pass the
 PR explicitly with `repository` + `pr-number`. The action then runs the
 same PR flow as a native `pull_request` event — including the check run,
-so a deploy-triggered exploration satisfies the required check too. One
-caveat on that path: the Platform resolves the PR **head SHA at kickoff
-time**, so if the PR advanced between the deploy and the kickoff, the
-check lands on the newer head while the exploration ran against the
-older deploy. Combine with `exploration-url` to supply the
-already-resolved preview URL — when it is set, no `github-token` is
-required (the token is only used to resolve the preview URL from GitHub
-APIs).
+so a deploy-triggered exploration satisfies the required check too. That
+path needs `github-token` (with `pull-requests: read`): the action reads
+the pull request's head commit and branch from GitHub when it runs, and
+fails the step when it cannot, rather than record the workflow's own
+commit as the pull request's.
 
 ## Inputs
 
 | Name | Required | Default | Description |
 |------|----------|---------|-------------|
-| `api-key` | Yes | — | Duku Platform API key. Generate in Viewport → Settings → API Keys. |
+| `api-key` | One of the two | — | Antidote Platform API key. Generate in Viewport → Settings → API Keys. |
+| `service-identity` | One of the two | — | A service identity's id (`svc_…`) to sign in with the job's GitHub OIDC token. The job needs `permissions: id-token: write`. See [Sign in with a service identity](#sign-in-with-a-service-identity-no-stored-secret). |
+| `oidc-audience` | No | _Platform origin_ | The GitHub OIDC token's audience, only with `service-identity`. |
 | `product-id` | Yes | — | Duku product ID (from Viewport → Products). |
 | `run-exploration` | No | `true` | Start an exploration after registering the build. Set to `false` to register the build only. |
 | `start-run` | No | `true` | **Deprecated alias for `run-exploration`.** |
 | `release-label` | No | — | Human-readable release name for this build, e.g. `1.4.2`. Recorded alongside the commit SHA and used as the build version. |
 | `request-headers` | No | *(empty)* | Headers each run of this build sends to the preview, one `Name: value` per line. Put secret parts in `{{secret.<name>}}` references. See [With a protected preview](#with-a-protected-preview-request-headers-and-secrets). |
 | `request-secrets` | No | *(empty)* | Secrets the headers reference, one `name=value` per line. Masked in the job log, stored encrypted, never returned. |
-| `vercel-automation-bypass-secret` | No | *(empty)* | Still supported: the Vercel Deployment Protection bypass secret, sent as `x-vercel-protection-bypass` to the origin of the URL the run explores. Do not set it together with `request-headers` or `request-secrets`; new workflows use those. |
-| `repository` | No | — | `owner/repo` to attach PR metadata to on a **non-`pull_request`** trigger (set together with `pr-number`). Runs the PR flow and posts both PR comments. |
+| `vercel-automation-bypass-secret` | No | *(empty)* | **Deprecated.** The Vercel Deployment Protection bypass secret, sent as `x-vercel-protection-bypass` to the origin of the URL the run explores. Ignored when `request-headers` or `request-secrets` is set. |
+| `repository` | No | — | `owner/repo` of the pull request to test on a **non-`pull_request`** trigger (set together with `pr-number`, and needs `github-token`). Runs the PR flow. |
 | `pr-number` | No | — | PR number to attach to on a non-`pull_request` trigger (set together with `repository`). |
 | `exploration-url` | No | _product base URL_ | Override the URL to explore. If unset and on a PR, the preview URL resolvers run; otherwise falls back to the product's base URL. When set, no `github-token` is required. |
 | `preview-url-source` | No | `auto` | Preview URL resolver on `pull_request`. One of `auto`, `deployments`, `checks`, `statuses`, `comments`, `none`. `auto` runs only the sha-keyed resolvers (deployments → checks → statuses) and never reads PR comments. |
@@ -184,8 +218,9 @@ APIs).
 | `preview-url-regex` | No | *(empty)* | Regex to extract the preview URL from provider text (Comments resolver). Defaults to a generic `http(s)` heuristic. |
 | `wait-for-target-seconds` | No | *(empty)* | Seconds to let the platform wait for the resolved URL to actually **serve** before dispatching. The resolvers above only prove a URL was *published*; a preview that loses the race with its own deploy is still cold when the run fires. Empty dispatches immediately, as before. The platform caps the window and warns in the step log if it shortens your request. |
 | `credential-set` | No | *(empty)* | The credential set to log in with, by name or ID, from this product's sets. An unknown set fails the step; it never falls back to the default. Empty uses the product's default login. Ignored when `run-exploration` is false. |
-| `github-token` | No | *(empty)* | Token used to resolve the preview URL from GitHub APIs (Deployments / Checks / Statuses / comments). Falls back to the `GITHUB_TOKEN` env. Not required when `exploration-url` is supplied. |
-| `github-installation-id` | No | *(auto)* | Optional Duku AI GitHub App installation ID. The server auto-discovers this when the App is installed. |
+| `github-token` | No | *(empty)* | Token used to resolve the preview URL from GitHub APIs (Deployments / Checks / Statuses / comments), and to read the pull request's head with `repository` + `pr-number`. Falls back to the `GITHUB_TOKEN` env. Not required on a `pull_request` run when `exploration-url` is supplied. |
+| `github-installation-id` | No | — | **Deprecated, ignored.** The Platform finds the Antidote Bot GitHub App installation itself. |
+| `auth-url` | No | — | **Deprecated, ignored.** The antidote CLI finds the sign-in endpoint itself. |
 
 ## Outputs
 
@@ -194,22 +229,23 @@ APIs).
 | `target-id` | ID of the build registered with Duku. |
 | `target-name` | Human-readable name of the build. |
 | `target-version` | Version assigned to the build. |
-| `run-id` | ID of the started exploration (when `run-exploration: true`). On PR runs, same as `exploration-batch-id`. |
-| `run-status` | Kickoff status of the exploration. On PR runs: `triggered` — terminal status is posted to the PR comment by the Duku AI GitHub App. |
-| `exploration-batch-id` | ID of the exploration (PR runs only). |
-| `comment-id` | Always empty on PR events since 0.1.1 — the sticky comment is posted server-side by the Duku AI GitHub App, not by the action. |
-| `preview-url-source` | Which resolver produced the preview URL: `deployments`, `checks`, `statuses`, `comments`, or `override` when `exploration-url` was set. Empty when none resolved. |
+| `run-id` | The agentic execution the build started (on a pull request, its agentic pull request test). Empty when nothing was started. |
+| `run-status` | `triggered` when an agentic execution started, else `skipped`. The results are posted to the pull request by the Antidote Bot GitHub App. |
+| `exploration-batch-id` | **Deprecated:** always empty. |
+| `comment-id` | **Deprecated:** always empty. The comment is posted server-side by the Antidote Bot GitHub App. |
+| `preview-url-source` | How the preview URL was found: `deployments`, `checks`, `statuses`, `comments`, or `override` when `exploration-url` was set. Empty when no URL was sent. |
 
 ## Permissions
 
 ```yaml
 permissions:
   contents: read            # checkout
-  pull-requests: write      # post + update the sticky error-summary comment
+  pull-requests: read       # only with repository + pr-number
   deployments: read         # Deployments resolver
   checks: read              # Checks resolver (if used)
   statuses: read            # Statuses resolver (if used)
   issues: read              # PR comments resolver (if used)
+  id-token: write           # only with service-identity
 ```
 
 The **workflow token needs no additional scopes for the check run** — it
@@ -227,7 +263,7 @@ Add the following in your repo (Settings → Secrets and variables → Actions):
 
 | Name | Kind | Purpose |
 |------|------|---------|
-| `PLATFORM_API_KEY` | Secret | Duku Platform API key. |
+| `PLATFORM_API_KEY` | Secret | Antidote Platform API key; not needed with `service-identity`. |
 | `PLATFORM_PRODUCT_ID` | Variable | Duku product ID (not sensitive). |
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | Secret (optional) | Vercel Deployment Protection bypass for protected previews, passed in `request-secrets`. |
 
@@ -304,8 +340,12 @@ Opt in explicitly if you want it anyway:
 (`preview/v1`) is only published once a stable `1.x` release is cut.
 
 **API connection fails.** Verify `api-url` is reachable from GitHub
-Actions runners, the `api-key` is current, and check the action logs for
-the specific error.
+Actions runners, the `api-key` is current (or the service identity's trust
+rule matches this repository), and check the action logs for the antidote
+CLI's error.
+
+**npx was not found on this runner.** The action runs the antidote CLI with
+`npx`. Add `actions/setup-node` before the step on a self-hosted runner.
 
 **Sticky "running" PR comment missing.** Since 0.1.1 the comment is
 posted server-side by the Duku AI GitHub App, not by the action:

@@ -1,19 +1,30 @@
 name: 'Duku Preview'
-description: 'Creates a per-PR Duku target and, on pull_request, orchestrates an exploration with a sticky PR comment of the top errors'
+description: "Records a pull request's preview as a build of an Antidote product and tests it, through the antidote CLI. The runner needs Node 22.4 or newer with npx (actions/setup-node), on Linux or macOS. Antidote posts the results on the pull request."
 author: 'Duku AI'
 
 inputs:
   api-url:
-    description: 'Platform API GraphQL endpoint URL'
+    description: 'The Antidote Platform URL. Only its origin is used, so the old GraphQL endpoint URL still works.'
     required: false
     default: 'https://platform.duku.ai/graphql'
 
   api-key:
-    description: 'Platform API key (generate in Viewport Settings > API Keys)'
-    required: true
+    description: 'An Antidote API key (Viewport Settings > API Keys). Set this or service-identity.'
+    required: false
+    default: ''
+
+  service-identity:
+    description: "A service identity's id (svc_…) to sign in with the job's GitHub OIDC token, so no secret is stored. The job needs `permissions: id-token: write`. Set this or api-key."
+    required: false
+    default: ''
+
+  oidc-audience:
+    description: "The audience of the GitHub OIDC token, only with service-identity. Empty uses the Platform's origin, the default audience of a trust rule made in Viewport."
+    required: false
+    default: ''
 
   auth-url:
-    description: 'Authentication server URL (defaults to deriving from api-url by replacing the platform. host prefix with auth. and dropping the path)'
+    description: "Deprecated and ignored: the antidote CLI finds the sign-in endpoint itself. Only the environment action's apk-path still reads it."
     required: false
     default: ''
 
@@ -22,7 +33,7 @@ inputs:
     required: true
 
   vercel-automation-bypass-secret:
-    description: "Optional, still supported: the Vercel Deployment Protection bypass secret. Duku stores it as the build's secret vercel_automation_bypass and sends it as the header x-vercel-protection-bypass, only to the origin of the URL the run explores. Do not set it together with request-headers or request-secrets; new workflows use those instead."
+    description: "Deprecated: the Vercel Deployment Protection bypass secret. Sent as the secret vercel_automation_bypass with the header x-vercel-protection-bypass, only to the origin of the URL the run explores. Ignored when request-headers or request-secrets is set; use those instead."
     required: false
     default: ''
 
@@ -108,7 +119,7 @@ inputs:
     default: ''
 
   repository:
-    description: 'Explicit "owner/repo" to attach PR metadata to when not running on a pull_request event (must be set together with pr-number). Lets non-pull_request triggers (push, deployment_status, workflow_run, repository_dispatch) post the PR comments.'
+    description: 'Explicit "owner/repo" of the pull request to test when not running on a pull_request event (must be set together with pr-number, and needs github-token to read its head). Lets non-pull_request triggers (push, deployment_status, workflow_run, repository_dispatch) test the pull request.'
     required: false
     default: ''
 
@@ -118,12 +129,12 @@ inputs:
     default: ''
 
   github-installation-id:
-    description: 'GitHub App installation ID for PR error reporting (optional; the server auto-discovers the installation when the Duku AI GitHub App is installed on the repo)'
+    description: 'Deprecated and ignored: the Antidote Platform finds the GitHub App installation itself.'
     required: false
     default: ''
 
   github-token:
-    description: 'GitHub token used to resolve the preview URL via GitHub APIs (defaults to GITHUB_TOKEN env). Not required when exploration-url is provided.'
+    description: "GitHub token used to resolve the preview URL via GitHub APIs, and to read the pull request's head with repository + pr-number (defaults to GITHUB_TOKEN env). Not required on a pull_request run when exploration-url is provided."
     required: false
     default: ''
 
@@ -138,19 +149,19 @@ outputs:
     description: 'Version of the created target'
 
   run-id:
-    description: 'ID of the started exploration (if run-exploration is true). On PR events, same as exploration-batch-id.'
+    description: 'The agentic execution the build started (on a pull request, its agentic pull request test). Empty when nothing was started.'
 
   run-status:
-    description: 'Kickoff status of the exploration. On PR events: "triggered" (both the running and terminal-results PR comments are posted by the Duku AI GitHub App). On non-PR events: the server-reported initial status.'
+    description: '"triggered" when an agentic execution started, else "skipped".'
 
   exploration-batch-id:
-    description: 'ID of the exploration (when running on a pull_request).'
+    description: 'Deprecated: always empty.'
 
   comment-id:
-    description: 'Deprecated: always empty on PR events. The sticky PR comment is now posted by the Duku AI GitHub App server-side, so the action no longer knows its id.'
+    description: 'Deprecated: always empty. The Antidote Bot GitHub App posts the pull request comment.'
 
   preview-url-source:
-    description: "Which resolver produced the preview URL: deployments, checks, statuses, comments, or override when exploration-url was set. Empty when no URL was resolved."
+    description: "How the preview URL was found: deployments, checks, statuses, comments, or override when exploration-url was set. Empty when no URL was sent."
 
 runs:
   using: 'node24'

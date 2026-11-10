@@ -1,18 +1,16 @@
-# Android example for the duku-ai/actions/environment action: build the APK,
+# Android example for the duku-ai/actions/environment action (vNEXT, the first
+# release after v0.5.0): build the APK,
 # then hand it to Duku with apk-path. Copy into .github/workflows/ in your repo
 # and adjust the Gradle task, the APK path and the product-id variable.
 #
-# On a push the build is recorded on the product's default environment (or the
-# one you name); on a pull request it lands on the PR's own pr-<number>
-# environment, which needs Preview deployments turned on for the product in
-# Viewport → Product settings → Environments.
+# The build is recorded on the product's default environment (or the one you
+# name).
 
 name: Duku Android
 
 on:
   push:
     branches: [main]
-  pull_request:
   workflow_dispatch:
 
 concurrency:
@@ -24,7 +22,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
     steps:
       - uses: actions/checkout@v4
 
@@ -37,7 +34,7 @@ jobs:
       - run: ./gradlew assembleRelease
 
       - id: duku
-        uses: duku-ai/actions/environment@environment/v0.6.0
+        uses: duku-ai/actions/environment@environment/vNEXT
         with:
           api-key: ${{ secrets.PLATFORM_API_KEY }}
           product-id: ${{ vars.DUKU_ANDROID_PRODUCT_ID }}

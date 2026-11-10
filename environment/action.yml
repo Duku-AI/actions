@@ -1,16 +1,26 @@
 name: 'Duku Environment'
-description: 'Records the build a commit produced against one of your Duku environments, then triggers an exploration and/or test cases against it. The action kicks off the runs and exits — terminal results appear in Viewport. Intended for push / schedule / workflow_dispatch.'
+description: 'Records the build a commit produced against one of your Antidote environments as a release and tests it, through the antidote CLI, so for a web build the runner needs Node 22.4 or newer with npx (actions/setup-node), on Linux or macOS. The action starts the test and exits; results appear in Viewport. For push / schedule / workflow_dispatch: a run whose event carries a pull request fails (use the preview action).'
 author: 'Duku AI'
 
 inputs:
   api-key:
-    description: 'Platform API key (generate in Viewport Settings → API Keys)'
-    required: true
-
-  product-id:
-    description: 'Duku product ID (from Viewport → Products). Use with `environment`; mints a build per commit against that endpoint.'
+    description: 'An Antidote API key (Viewport Settings → API Keys). Set this or service-identity. Required with apk-path.'
     required: false
     default: ''
+
+  service-identity:
+    description: "A service identity's id (svc_…) to sign in with the job's GitHub OIDC token, so no secret is stored. The job needs `permissions: id-token: write`. Set this or api-key."
+    required: false
+    default: ''
+
+  oidc-audience:
+    description: "The audience of the GitHub OIDC token, only with service-identity. Empty uses the Platform's origin, the default audience of a trust rule made in Viewport."
+    required: false
+    default: ''
+
+  product-id:
+    description: 'Antidote product ID (from Viewport → Products). Records a build per commit on one of its environments.'
+    required: true
 
   environment:
     description: 'Name of an environment declared on the product (Viewport → Product settings → Environments), e.g. staging. Optional with `product-id`: when empty the run lands on the product''s default environment.'
@@ -23,7 +33,7 @@ inputs:
     default: ''
 
   release-label-from:
-    description: 'Where the release name comes from when `release-label` is unset: `git-describe` (default, `git describe --tags --always --dirty`), `git-tag` (exact tag on HEAD), `package-json` (version field), or `input` (only `release-label`, may be empty). A source that yields nothing falls back to the short SHA with a warning, never a failure.'
+    description: 'Where the release name comes from when `release-label` is unset: `git-describe` (default, `git describe --tags --always --dirty`), `git-tag` (exact tag on HEAD), `package-json` (version field), or `input` (only `release-label`; when it is empty a run with a verified commit or branch is named by its short SHA, and any other run fails before anything is recorded). A derived source that yields nothing falls back to the short SHA with a warning, never a failure.'
     required: false
     default: 'git-describe'
 
@@ -33,57 +43,57 @@ inputs:
     default: 'package.json'
 
   commit:
-    description: 'The deployed commit, as a tag, branch or SHA, for runs where GitHub names none (workflow_dispatch, schedule). Looked up in this repository and recorded as the build''s verified commit; a commit GitHub can''t find fails the step. A bare SHA must be on the default branch (pass a tag or branch otherwise). Disables `release-label-from`, so pass `release-label`. Needs `github-token` with `contents: read`. Not allowed on push / pull_request, where GitHub already names the commit.'
+    description: 'The deployed commit, as a tag, branch or SHA, for runs where GitHub names none (workflow_dispatch, schedule). Looked up in this repository and recorded as the build''s verified commit; a commit GitHub can''t find fails the step. A bare SHA must be on the default branch (pass a tag or branch otherwise). Disables `release-label-from`, so pass `release-label`. Needs `github-token` with `contents: read`. Not allowed on push, where GitHub already names the commit.'
     required: false
     default: ''
 
   apk-path:
-    description: 'Path to the Android build to test: one .apk file, or a directory holding exactly one .apk. When set, the action uploads it, waits until Duku has checked it, records it as this build and explores it. Needs product-id.'
+    description: 'Path to the Android build to test: one .apk file, or a directory holding exactly one .apk. When set, the action uploads it, waits until Antidote has checked it, records it as this build and explores it. Needs api-key.'
     required: false
     default: ''
 
   target-id:
-    description: 'DEPRECATED: pre-created environment target ID from Viewport. Runs are not attributed to a release — use product-id + environment instead. Mutually exclusive with them.'
+    description: 'Removed in v1: setting it fails the step. Use product-id with environment.'
     required: false
     default: ''
 
   url:
-    description: 'DEPRECATED: use `exploration-url` instead. Override the URL to explore. Only valid with `target-id` (defaults to the target buildUrl); with `environment` the endpoint owns its URL.'
+    description: "Removed in v1: setting it fails the step. The environment's URL is set in Viewport → Product settings → Environments."
     required: false
     default: ''
 
   exploration-url:
-    description: 'Override the URL to explore. Only valid with `target-id` (defaults to the target buildUrl); with `product-id` (+ optional `environment`) the endpoint owns its URL.'
+    description: "Removed in v1: setting it fails the step. The environment's URL is set in Viewport → Product settings → Environments."
     required: false
     default: ''
 
   api-url:
-    description: 'Platform API GraphQL endpoint URL'
+    description: 'The Antidote Platform URL. Only its origin is used, so the old GraphQL endpoint URL still works; with apk-path the build is uploaded to <origin>/graphql.'
     required: false
     default: 'https://platform.duku.ai/graphql'
 
   auth-url:
-    description: 'Authentication server URL (defaults to deriving from api-url by replacing the platform. host prefix with auth. and dropping the path)'
+    description: 'Deprecated and ignored, except with apk-path: the antidote CLI finds the sign-in endpoint itself. With apk-path it is the Keycloak URL the API key signs in at, derived from api-url when empty.'
     required: false
     default: ''
 
   repository:
-    description: 'Explicit "owner/repo" to attach PR metadata to when not running on a pull_request event (must be set together with pr-number). Lets non-pull_request triggers post the PR comment.'
+    description: 'Removed in v1: setting it fails the step. Pull requests are the preview action''s.'
     required: false
     default: ''
 
   pr-number:
-    description: 'Explicit PR number to attach to when not running on a pull_request event (must be set together with repository).'
+    description: 'Removed in v1: setting it fails the step. Pull requests are the preview action''s.'
     required: false
     default: ''
 
   github-installation-id:
-    description: 'GitHub App installation ID for PR error reporting (optional; the server can auto-discover the installation when the Duku GitHub App is installed on the repo)'
+    description: 'Deprecated and ignored: the Antidote Platform finds the GitHub App installation itself.'
     required: false
     default: ''
 
   github-token:
-    description: 'GitHub token. On a pull_request event it posts the sticky "running" PR comment (needs pull-requests: write). On a push it resolves which PRs the pushed commits came from, so a PR''s preview builds can be linked to the build that shipped (needs pull-requests: read). Falls back to GITHUB_TOKEN from env if unset. Optional on both paths — without it the comment and the link are skipped, never failed. Required with `commit`, to look it up (needs contents: read).'
+    description: 'GitHub token, used only to look the `commit` input up (needs contents: read). Falls back to GITHUB_TOKEN from env if unset.'
     required: false
     default: ''
 
@@ -93,48 +103,44 @@ inputs:
     default: 'true'
 
   wait-for-deployment:
-    description: 'Poll the environment URL until it serves the expected commit before exploring. The app must expose its deployed commit as a response header (see wait-commit-header). Off by default.'
+    description: 'Poll the environment URL until it serves the expected commit before anything is recorded. The app must expose its deployed commit as a response header (see wait-commit-header). Off by default.'
     required: false
     default: 'false'
 
   wait-for-deployment-timeout-seconds:
-    description: 'How long to wait for the expected commit before failing the step.'
+    description: 'How long to wait for the expected commit before failing the step. Defaults to 300 (the antidote CLI''s default).'
     required: false
-    default: '300'
 
   wait-for-deployment-interval-seconds:
-    description: 'Delay between deployment polls.'
+    description: 'Delay between deployment polls, in seconds. Defaults to 10 (the antidote CLI''s default).'
     required: false
-    default: '10'
 
   wait-commit-header:
-    description: 'Response header the app exposes its deployed commit hash on (case-insensitive).'
+    description: 'Response header the app exposes its deployed commit hash on (case-insensitive). Defaults to x-commit-sha (the antidote CLI''s default).'
     required: false
-    default: 'x-commit-sha'
 
   wait-commit-path:
-    description: 'Path appended to the environment URL on each poll (e.g. /api/health).'
+    description: 'Path appended to the environment URL on each poll (e.g. /api/health). Defaults to / (the antidote CLI''s default).'
     required: false
-    default: '/'
 
 outputs:
   target-id:
-    description: 'ID of the build the run was attributed to (the minted target in environment mode, the given target in target mode).'
+    description: 'ID of the build the run was attributed to.'
 
   release-id:
-    description: 'ID of the release (app version) the build landed as. Empty in target mode, which mints no release.'
+    description: 'ID of the release (app version) the build landed as.'
 
   run-id:
-    description: 'ID of the exploration batch. Empty when run-exploration is false.'
+    description: 'The agentic execution the build started. Empty when nothing was started.'
 
   run-status:
-    description: 'Kickoff status of the exploration: triggered (running asynchronously — see Viewport for terminal status), started (Android: discovery started; no run id, see Viewport), or skipped (run-exploration is false)'
+    description: 'triggered (an agentic execution started; see Viewport for its results), started (Android: discovery started; no run id, see Viewport), or skipped (nothing was started)'
 
   build-warnings:
     description: 'Android only: warnings about the uploaded APK (one per line). Empty without apk-path.'
 
   comment-id:
-    description: 'ID of the sticky PR comment posted by the action (only set when invoked on a pull_request event with a github-token)'
+    description: 'Deprecated: always empty.'
 
 runs:
   using: 'node24'

@@ -5,16 +5,37 @@ kicks off a Duku exploration against it and exits. **Async by design**: the
 exploration runs asynchronously in the Platform — the GitHub job does not wait
 for it to complete.
 
-Use this action on `push`, `schedule`, `workflow_dispatch`, or `pull_request`
-events to run against long-lived environments (staging, prod canary,
-customer-specific deploys). The environment must already be declared in
-Viewport → Product settings → Environments; the action names it.
+Use this action on `push`, `schedule` or `workflow_dispatch` events to record
+releases on long-lived environments (staging, prod canary, customer-specific
+deploys). The environment must already be declared in Viewport → Product
+settings → Environments; the action names it.
 
-> For PR-preview workflows where each PR gets its own ephemeral endpoint, use
-> the [`preview`](../preview) action instead.
+> Pull requests are the [`preview`](../preview) action's. From `vNEXT` this
+> action fails a run whose event carries a pull request (`pull_request`,
+> `pull_request_target`, a comment on a pull request, or a `workflow_run` a
+> pull request run started), naming the preview action.
 >
 > For an Android app, pass the APK you built as `apk-path` — see
 > [Android builds](#android-builds).
+
+From `1.0.0` (listed under Unreleased in the [CHANGELOG](./CHANGELOG.md), shown
+below as `vNEXT`), the action records a web build through the
+[antidote CLI](../../apps/cli/duku/README.md)
+(`npx --yes @getantidote/cli@2 record-release`), as Antidote's GitLab component
+does. So for a web build the runner needs:
+
+- **Node 22.4 or newer, with `npx`**: the CLI's minimum (`engines` in its
+  `package.json`). Unless the runner's own Node is that new, add this step
+  before the action:
+
+  ```yaml
+  - uses: actions/setup-node@v4
+    with:
+      node-version: 22
+  ```
+
+- **Linux or macOS.** The action does not run on Windows runners: it stops
+  before calling the CLI and says so.
 
 ## Usage
 
@@ -46,9 +67,11 @@ not whatever version the previous release commit bumped to.
 `release-label-from` accepts `git-describe` (default), `git-tag` (exact tag
 pointing at HEAD, sorted-first when several do), `package-json` (the `version`
 field of `package-json-path`, default `package.json`, stored verbatim), or
-`input` (only the `release-label` input, which may be empty). A source that
-yields nothing — no git metadata, a missing file, an empty version — falls
-back to the short SHA with a warning, never a failure. If you do have your own
+`input` (only the `release-label` input; when it is empty, a run with a
+verified commit or branch is named by its short SHA, and any other run fails
+before anything is recorded). A derived source that yields nothing — no git
+metadata, a missing file, an empty version — falls back to the short SHA with a
+warning, never a failure. If you do have your own
 scheme, pass it as `release-label` and it wins over the derived value:
 
 ```yaml
@@ -59,14 +82,35 @@ One commit is one release: when the platform already holds this commit under a
 different label, the stored label wins and the step logs a warning naming the
 rename path in Viewport — a re-sent label never silently overwrites history.
 
-A SHA is only recorded when the event vouches for one — `push` and
-`pull_request` do. On `schedule` and `workflow_dispatch` the build is recorded
+A SHA is only recorded when the event vouches for one — `push` does. On `schedule` and `workflow_dispatch` the build is recorded
 without one rather than with a guessed one, since `GITHUB_SHA` there describes
 the workflow's ref and not necessarily what is deployed. Without an explicit
 `release-label`, repeat triggers on the same commit collapse onto the same
 build, so a nightly sweep against a branch that has already been pushed reuses
 that push's build rather than minting a SHA-less duplicate. With one, the label
 is the build — see below.
+
+### Sign in with a service identity (no stored secret)
+
+From `vNEXT`, the action can sign in with the job's GitHub OIDC token instead
+of an API key. An org admin creates a service identity in Viewport → Settings →
+Service identities, with a trust rule for
+`https://token.actions.githubusercontent.com` and your repository:
+
+```yaml
+permissions:
+  contents: read
+  id-token: write          # the job's OIDC token, exchanged for an Antidote session
+
+- uses: duku-ai/actions/environment@environment/vNEXT
+  with:
+    service-identity: svc_...
+    product-id: ${{ vars.DUKU_PRODUCT_ID }}
+    environment: staging
+```
+
+Set `api-key` or `service-identity`, not both. An Android build (`apk-path`)
+still needs `api-key`.
 
 ## Nightly runs against a release you name
 
@@ -119,7 +163,7 @@ permissions:
   contents: read
 
 steps:
-  - uses: duku-ai/actions/environment@environment/v0.4.2
+  - uses: duku-ai/actions/environment@environment/vNEXT
     with:
       api-key: ${{ secrets.PLATFORM_API_KEY }}
       product-id: ${{ vars.DUKU_PRODUCT_ID }}
@@ -143,8 +187,7 @@ is recorded.
 - Pass `release-label` too. With `commit`, the label is never derived:
   `release-label-from` reads the checked-out commit, not `commit`, and a
   commit's label can't be changed from CI once recorded.
-- `commit` is refused on `push` / `pull_request` (and any event carrying a pull
-  request), where GitHub already names the commit.
+- `commit` is refused on `push`, where GitHub already names the commit.
 - A release recorded earlier under the same label without a commit stays a
   separate release: a label alone can span commits (a `package.json` version
   does), so Duku never attaches a commit to it after the fact. Start passing
@@ -154,42 +197,20 @@ is recorded.
 
 A squash or a rebase mints a new commit, so the build a PR's preview
 explorations observed and the build that shipped share no SHA — nothing joins
-them. On a **`push`** event, with a `github-token` that has
-`pull-requests: read`, the action asks GitHub which PRs the pushed commits came
-from and records the link (a *landing*) on the Platform: `<PR head> landed as
+them. On a **`push`** event, Antidote asks GitHub which pull requests the pushed
+commit belongs to and records the link (a *landing*): `<PR head> landed as
 <pushed commit>`. Viewport can then show what a shipped build was tested as
 before it merged.
 
-```yaml
-on:
-  push:
-    branches: [main]
+From `vNEXT` Antidote reads this through the
+[Antidote Bot GitHub App](https://github.com/apps/antidote-bot), so the workflow needs no
+token for it: install the App on the repository and link it to your
+organisation. Without that the step succeeds and warns that landings were not
+recorded, saying whether the App is not installed or not linked, and where an
+org admin fixes it. Only the pushed commit is looked up, so a push of several
+commits records the landing of the last one.
 
-jobs:
-  duku:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read     # resolve which PRs the pushed commits came from
-    steps:
-      - uses: duku-ai/actions/environment@environment/v0.5.0
-        with:
-          api-key: ${{ secrets.PLATFORM_API_KEY }}
-          product-id: ${{ vars.DUKU_PRODUCT_ID }}
-          environment: staging
-          github-token: ${{ github.token }}
-```
-
-Squash, merge-commit and rebase merges all work, with no strategy to configure:
-GitHub associates each of the resulting commits with the PR it came from. A
-fast-forward push of the PR branch itself records the PR head as landing as
-itself, so the PR is still tied to the commit that shipped.
-
-Best effort by design. No token, a repo that withholds the commit-PR index, a
-network failure, a push carrying more than 20 commits — each logs a warning and
-the run continues. The link is a convenience for reading history, never a
-precondition for the exploration, and it is never written on a
-`pull_request` event, where nothing has landed yet.
+Best effort by design: a failed lookup is a warning and the run continues.
 
 ## Choosing what runs
 
@@ -237,40 +258,12 @@ res.setHeader('x-commit-sha', process.env.COMMIT_SHA ?? 'unknown');
 Notes:
 
 - Off by default — an existing workflow is unchanged.
-- The wait needs a verified commit SHA, which `push` and `pull_request`
-  events vouch for. On `schedule` / `workflow_dispatch` there is nothing to
-  match against, so the wait is skipped with an info line rather than failed.
+- The wait needs a verified commit SHA, which a `push` event, or `commit` on
+  another trigger, vouches for. Without one there is nothing to match
+  against, so the wait is skipped with an info line rather than failed.
 - On timeout the step fails with an error naming the URL, the commit and the
   header it looked for. Transient HTTP errors (and error statuses) are
   retried, never fatal, until the timeout.
-
-## Running on a PR against a fixed environment
-
-If you ship by merging into a protected branch (e.g. `dev` → `prod`) and want
-Duku to run against a **permanent** environment that already holds the code
-about to ship, trigger this action on `pull_request` against that branch. With
-the **Duku AI GitHub App** installed and a `github-token` available, the running
-and terminal results are posted to the PR comment.
-
-```yaml
-on:
-  pull_request:
-    branches: [prod]
-
-jobs:
-  duku:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: duku-ai/actions/environment@environment/v0.5.0
-        with:
-          api-key: ${{ secrets.PLATFORM_API_KEY }}
-          product-id: ${{ vars.DUKU_PRODUCT_ID }}
-          environment: dev
-          github-token: ${{ github.token }}
-```
 
 ## Android builds
 
@@ -279,7 +272,7 @@ you already do, then point `apk-path` at it — one `.apk` file, or a directory
 holding exactly one (patterns are not expanded):
 
 ```yaml
-- uses: duku-ai/actions/environment@environment/v0.6.0
+- uses: duku-ai/actions/environment@environment/vNEXT
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.DUKU_ANDROID_PRODUCT_ID }}
@@ -295,11 +288,7 @@ The exploration runs on emulators with the product's default device.
   `1.4.2 (42)`. An explicit `release-label` still wins; `release-label-from`
   is not read.
 - **Where the build lands.** The `environment` you name, else the product's
-  default environment. On a pull request with no `environment`, the build
-  lands on the PR's own `pr-<number>` environment (fork-qualified for a fork's
-  PR), so a PR build never replaces your staging build. That needs Preview
-  deployments turned on in Viewport → Product settings → Environments; the
-  step says so when they are off.
+  default environment.
 - **Refused builds.** Duku refuses an app bundle (`.aab`), split APKs, a build
   over 1 GB, an unsigned or badly signed APK, one with no launchable activity,
   and a package other than the one the product already tests. The step fails
@@ -314,93 +303,85 @@ The exploration runs on emulators with the product's default device.
   `<debug-overrides>` of its network security config (Viewport → Product
   settings → App has the certificate and the config).
 - **Exploration status.** An Android exploration has no run id: `run-status`
-  reads `started`, `run-id` stays empty, and no running PR comment is posted.
-  Follow it in Viewport.
-- **Not with Android.** `apk-path` cannot be combined with `target-id` or
+  reads `started` and `run-id` stays empty. Follow it in Viewport.
+- **Not with Android.** `apk-path` cannot be combined with
   `wait-for-deployment` — the build is live as soon as Duku has checked it.
 
 ## Async by design
 
 Explorations regularly take 5–40 minutes each. Rather than
 burn GitHub Actions minutes polling, the action kicks off the run and exits.
-Terminal results appear in Viewport. On a `pull_request` event with the **Duku
-AI GitHub App** installed (<https://github.com/apps/duku-ai>), the Platform also
-posts terminal results to the PR comment.
+Terminal results appear in Viewport.
 
 ## Inputs
 
 | Name | Required | Default | Description |
 |------|----------|---------|-------------|
-| `api-key` | Yes | — | Duku Platform API key. Generate in Viewport → Settings → API Keys. |
-| `product-id` | Yes¹ | — | Duku product ID (Viewport → Products). |
-| `environment` | No¹ | _product default_ | Name of an environment declared on that product, e.g. `staging`. When empty, the run lands on the product's default environment (new products are born with a `production` endpoint). |
+| `api-key` | One of the two | — | Antidote Platform API key. Generate in Viewport → Settings → API Keys. Required with `apk-path`. |
+| `service-identity` | One of the two | — | A service identity's id (`svc_…`) to sign in with the job's GitHub OIDC token. The job needs `permissions: id-token: write`. |
+| `oidc-audience` | No | _Platform origin_ | The GitHub OIDC token's audience, only with `service-identity`. |
+| `product-id` | Yes | — | Antidote product ID (Viewport → Products). |
+| `environment` | No | _product default_ | Name of an environment declared on that product, e.g. `staging`. When empty, the run lands on the product's default environment (new products are born with a `production` endpoint). |
 | `release-label` | No | — | Explicit release name for this build, e.g. `1.4.2`. Wins over `release-label-from` when set. |
 | `release-label-from` | No | `git-describe` | Where the release name comes from when `release-label` is unset: `git-describe`, `git-tag`, `package-json`, or `input`. Falls back to the short SHA with a warning, never a failure. |
 | `package-json-path` | No | `package.json` | Path to package.json, relative to the checkout root. Only read when `release-label-from` is `package-json`. |
-| `commit` | No | — | The deployed commit as a tag, branch or SHA, for `workflow_dispatch` / `schedule` runs. Looked up in this repository and recorded as the build's commit; fails the step if GitHub can't find it. A bare SHA must be on the default branch. Disables label derivation, so pass `release-label`. Needs `github-token` with `contents: read`. Refused on `push` / `pull_request`. |
-| `exploration-url` | No | — | Override the URL to explore. Only valid with `target-id`; an `environment` owns its URL. |
-| `url` | No | — | **Deprecated alias for `exploration-url`.** |
+| `commit` | No | — | The deployed commit as a tag, branch or SHA, for `workflow_dispatch` / `schedule` runs. Looked up in this repository and recorded as the build's commit; fails the step if GitHub can't find it. A bare SHA must be on the default branch. Disables label derivation, so pass `release-label`. Needs `github-token` with `contents: read`. Refused on `push`. |
 | `run-exploration` | No | `true` | Start an exploration run. Set `false` to record the build without one. |
-| `wait-for-deployment` | No | `false` | Poll the environment URL until it serves the expected commit before dispatching. Needs the app to expose its commit on `wait-commit-header`. |
-| `wait-for-deployment-timeout-seconds` | No | `300` | How long to wait for the expected commit before failing. Must be a positive integer. |
-| `wait-for-deployment-interval-seconds` | No | `10` | Delay between deployment polls. Must be a positive integer. |
-| `wait-commit-header` | No | `x-commit-sha` | Response header the app exposes its deployed commit hash on (case-insensitive; full SHA or 7-char short form). |
-| `wait-commit-path` | No | `/` | Path appended to the environment URL on each poll (e.g. `/api/health`). |
-| `repository` | No | — | `owner/repo` to attach PR metadata to on a **non-`pull_request`** trigger (set together with `pr-number`). Lets a downstream push / dispatch job post the PR comment. |
-| `pr-number` | No | — | PR number to attach to on a non-`pull_request` trigger (set together with `repository`). |
-| `github-token` | No | `${{ github.token }}` | Used on `pull_request` events — or when `repository`+`pr-number` are supplied — to post a sticky "running" PR comment. Required with `commit`, to look it up. |
-| `apk-path` | No | — | Android: one `.apk` file, or a directory holding exactly one. Uploads it, waits until Duku has checked it, records it as this build and explores it. Needs `product-id`. See [Android builds](#android-builds). |
-| `target-id` | No | — | **Deprecated.** See below. |
-
-¹ Required unless the deprecated `target-id` is used instead.
+| `wait-for-deployment` | No | `false` | Poll the environment URL until it serves the expected commit before anything is recorded. Needs the app to expose its commit on `wait-commit-header`. A timeout fails the step and records nothing. |
+| `wait-for-deployment-timeout-seconds` | No | `300` (the CLI's) | How long to wait for the expected commit before failing. Must be a positive integer. |
+| `wait-for-deployment-interval-seconds` | No | `10` (the CLI's) | Delay between deployment polls. Must be a positive integer. |
+| `wait-commit-header` | No | `x-commit-sha` (the CLI's) | Response header the app exposes its deployed commit hash on (case-insensitive; full SHA or 7-char short form). |
+| `wait-commit-path` | No | `/` (the CLI's) | Path appended to the environment URL on each poll (e.g. `/api/health`). |
+| `github-token` | No | *(empty)* | Used only to look the `commit` input up. Falls back to the `GITHUB_TOKEN` env. |
+| `apk-path` | No | — | Android: one `.apk` file, or a directory holding exactly one. Uploads it, waits until Antidote has checked it, records it as this build and explores it. Needs `api-key`. See [Android builds](#android-builds). |
+| `api-url` | No | `https://platform.duku.ai/graphql` | The Antidote Platform URL. Only its origin is used; with `apk-path` the build is uploaded to `<origin>/graphql`. |
+| `auth-url` | No | _derived from `api-url`_ | **Deprecated, ignored** with a warning, except with `apk-path`: there it is the Keycloak URL the API key signs in at. |
+| `github-installation-id` | No | — | **Deprecated, ignored**, with a warning. |
+| `target-id`, `url`, `exploration-url` | No | — | **Removed in v1:** setting one fails the step. See below. |
+| `repository`, `pr-number` | No | — | **Removed in v1:** setting one fails the step. Pull requests are the [`preview`](../preview) action's. |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| `target-id` | ID of the build the run was attributed to (the minted target in `product-id` mode, the given target in `target-id` mode). |
-| `release-id` | ID of the release (app version) the build landed as. Empty in `target-id` mode, which mints no release. |
-| `run-id` | ID of the exploration. Empty when `run-exploration` is `false`. |
-| `run-status` | `triggered` (running asynchronously; terminal status is in Viewport), `started` (Android: discovery started, no run id; see Viewport) or `skipped`. |
-| `comment-id` | ID of the sticky PR comment (only set when an exploration ran on a `pull_request` event with a `github-token`). |
+| `target-id` | ID of the build the run was attributed to. |
+| `release-id` | ID of the release (app version) the build landed as. |
+| `run-id` | The agentic execution the build started. Empty when nothing was started. |
+| `run-status` | `triggered` (an agentic execution started; its results are in Viewport), `started` (Android: discovery started, no run id; see Viewport) or `skipped`. |
+| `comment-id` | **Deprecated:** always empty. |
 | `build-warnings` | Android only: warnings about the uploaded APK, one per line. Empty without `apk-path`. |
 
 ## Migrating from `target-id`
 
-`target-id` still works exactly as before, so an existing workflow needs no
-change. Its runs are not attributed to a release: they carry no commit, no
-branch and no environment, so they cannot be grouped or compared by build.
-
-To migrate:
+`target-id`, `url` and `exploration-url` were removed in `vNEXT`: setting one
+fails the step. A workflow that still uses them can stay pinned to
+`environment/v0.5.0` until it migrates:
 
 1. Declare the environment in Viewport → Product settings → Environments, with
    the URL the old target pointed at.
 2. Replace `target-id: ${{ vars.DUKU_STAGING_TARGET_ID }}` with `product-id`
    plus `environment:`.
-3. Drop any `url:` input — the environment carries the URL now.
+3. Drop any `url:` or `exploration-url:` input — the environment carries the URL now.
 
-The two forms are mutually exclusive; supplying both fails the step.
+## Migrating a pull request job
 
-Two things to check first.
-
-If declaring endpoints is not yet enabled for your organisation, step 1 is not
-available — Product settings shows no Environments section, and your product has
-only the `default` endpoint it was provisioned with. Naming that one does not
-help either: the Platform refuses the build this action mints against any
-endpoint while the feature is off. Ask Duku to enable it before migrating; the
-action names this whichever endpoint you try.
+From `vNEXT` a run whose event carries a pull request fails, and so does
+`repository` or `pr-number`: this action records releases on the product's
+environments only. Test a pull request with the [`preview`](../preview) action,
+against its own preview deployment; a pull request deployed onto one of the
+product's environments is not supported. A workflow can stay pinned to
+`environment/v0.5.0` until it moves.
 
 ## Examples
 
 - [`examples/environment-push.yml`](./examples/environment-push.yml) — minimal `push`-trigger workflow
-- [`examples/environment-pull-request.yml`](./examples/environment-pull-request.yml) — PR gate against a fixed environment
 - [`examples/environment-nightly.yml`](./examples/environment-nightly.yml) — nightly run against a release you name, triggered from your own job
-- [`examples/environment-android.yml`](./examples/environment-android.yml) — build an APK and explore it, on push and on PRs
+- [`examples/environment-android.yml`](./examples/environment-android.yml) — build an APK and explore it on each push
 
 ## Status
 
 This action is **pre-release** (`0.x`). It kicks off an exploration
 asynchronously. `fail-on` thresholds and Check Run integration come in later
-releases — until then, gate merges on the platform-side comment / Viewport.
+releases; until then, follow the results in Viewport.
 
 See [`CHANGELOG.md`](./CHANGELOG.md) for the version history.

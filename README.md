@@ -44,15 +44,11 @@ manually and sporadically, so **a version bump for behaviour that depends on a
 platform change must not land until that change is deployed to prod.** Build the
 bump as the last commit of the stack and land it after the deploy.
 
-An input listed in `gqlRequest`'s `optionalInputFields` is dropped with a
-warning on an older Platform rather than failing the step — but only the inputs
-actually listed there. Adding a field to a mutation does not opt it in, so the
-rule above still binds for anything you have not declared optional, and for
-behaviour with no older equivalent at all (e.g. the `environment` action's
-`product-id` + `environment` mode).
-
-The actions degrade rather than fail when prod is behind, so this is about
-customers getting the behaviour the CHANGELOG promises, not about breakage.
+Both actions run the server's tools (`record_preview`, `record_release`) through
+the antidote CLI, which takes only the flags prod's tool declares: a flag prod
+does not have yet fails the step. So the rule above is about breakage too, not
+only about customers getting the behaviour the CHANGELOG promises. The
+`environment` action's Android branch (`apk-path`) still calls GraphQL directly.
 
 To check what prod actually has, unauthenticated (validation runs before auth,
 so no credentials are needed):

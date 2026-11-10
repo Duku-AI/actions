@@ -2,11 +2,11 @@
 # Copy into .github/workflows/ in your repo and adjust the secrets/variables
 # to match your setup.
 #
-# On a PR the action resolves the preview URL from GitHub, starts an
-# exploration, posts a sticky "running" PR comment, and exits in seconds.
-# The Platform updates the same comment in place with the final results
-# once the exploration finishes — install the Duku AI GitHub App on the
-# repo for that update to land: https://github.com/apps/duku-ai
+# On a PR the action resolves the preview URL from GitHub, records the build
+# through the antidote CLI, starts Antidote's test of the pull request and exits in
+# seconds. The Platform posts the results on the pull request through the
+# Antidote Bot GitHub App; install it on the repo:
+# https://github.com/apps/antidote-bot
 
 name: Duku preview
 
@@ -25,12 +25,19 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      pull-requests: write   # required to post the sticky "running" PR comment
       deployments: read      # required for preview URL resolution
+      id-token: write        # only with service-identity
     steps:
+      # From 1.0.0 the action runs the antidote CLI, which needs Node 22.4 or newer.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - uses: duku-ai/actions/preview@preview/v0.5.0
         with:
           api-key: ${{ secrets.PLATFORM_API_KEY }}
+          # Or, with no stored secret, a service identity whose trust rule
+          # accepts this repository's GitHub OIDC tokens:
+          # service-identity: svc_...
           product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
           # Optional: headers for a protected preview, here Vercel Deployment
           # Protection. Secret parts go in request-secrets, masked in the log.

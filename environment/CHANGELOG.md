@@ -4,6 +4,53 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+This is `1.0.0`: the action now records a web build through the antidote CLI.
+
+- **Runs `antidote record-release`.** The action reads GitHub's context as
+  before (the commit, its parent, the branch, the release label, `commit`),
+  then runs `npx --yes @getantidote/cli@2 record-release` and copies its result
+  into the outputs, as Antidote's GitLab component does. The server finds the
+  environment, records the build and starts its agentic execution, so GitHub
+  and GitLab get the same fixes at once.
+- **BREAKING CHANGE:** for a web build the runner needs Node 22.4 or newer
+  with `npx` (the CLI's minimum). Unless the runner's Node is that new, add
+  `actions/setup-node@v4` with `node-version: 22` before the action. Windows
+  runners are not supported: the step fails before calling the CLI.
+- **Sign in with a service identity.** New `service-identity` input (with
+  optional `oidc-audience`): the job's GitHub OIDC token is exchanged for an
+  Antidote session, so no secret is stored. The job needs
+  `permissions: id-token: write`. `api-key` still works and is no longer
+  required; set one of the two. `apk-path` still needs `api-key`.
+- **BREAKING CHANGE:** pull request runs are refused. The action records
+  releases on the product's environments only: a run whose event carries a
+  pull request (`pull_request`, `pull_request_target`, a comment on a pull
+  request, or a `workflow_run` a pull request run started) fails before any
+  call. Use the [`preview`](../preview) action for a pull request's preview.
+- **BREAKING CHANGE:** `repository` and `pr-number` are removed: setting one
+  fails the step.
+- **BREAKING CHANGE:** `target-id`, `url` and `exploration-url` are removed:
+  setting one fails the step. Use `product-id` with `environment`.
+- **BREAKING CHANGE:** `run-id` now names the agentic execution the build
+  started, and `comment-id` is always empty: the action no longer posts the
+  running comment.
+- **Landings now come only from the pushed tip, through the Antidote Bot GitHub
+  App.** The action no longer reads pull requests with `github-token`: Antidote
+  looks the pushed commit up through the App and records where each of its
+  pull requests landed. Only the last commit of a push is looked up. Without
+  the App installed and linked to the organisation, the step warns that
+  landings were not recorded. A `commit` the workflow names on a manual run
+  also records that commit's landings. Android builds record no landings.
+- **The deployment wait runs before anything is recorded**, so a timeout
+  fails the step with nothing recorded (the action used to record the build
+  first). The wait follows redirects.
+- **`github-token`** is now used only to look the `commit` input up.
+- **Deprecated, still accepted:** `auth-url` and `github-installation-id` are
+  ignored, with a warning. With `apk-path`, `auth-url` still names where the
+  API key signs in, and the build goes to the GraphQL endpoint at the origin
+  of `api-url`.
+- **The deployment wait's four settings default to the CLI's own values**
+  (`300`, `10`, `x-commit-sha`, `/`), and are sent only when set.
+
 - **Test step removed.** The `run-tests`, `test-runs-per-path` and
   `test-paths-per-goal` inputs and the `test-run-id` / `test-run-status`
   outputs are gone: tests are now flows, and the platform no longer dispatches
@@ -19,24 +66,7 @@ All notable changes to the `environment` action will be documented in this file.
   branch, since GitHub also serves fork-only commits; pass a tag or branch for
   anything else. With `commit` the label is never derived from the checkout,
   so pass `release-label`. Needs `github-token` with `contents: read`; refused
-  on `push` / `pull_request`, where GitHub already names the commit.
-- **The running PR comment carries the new comment markers.** Duku now marks
-  its sticky PR comment `duku-change-request-comment:v1` (and batch results
-  `duku-batch-result:v2`). The action finds a comment carrying either the new
-  or the old markers and writes both, so it keeps updating the same comment
-  whichever Platform version wrote it. No input change.
-- **A merge or rebase push records one landing per PR, as the commit that
-  contains the whole PR.** A merge push also carries the PR's own commits, and
-  each is associated with the PR, so the action recorded that the PR head landed
-  as the PR's *first* commit as well as the merge commit. It now keeps the last
-  commit in the push for each PR: the squash commit, the merge commit, or the
-  tip of a rebase. A push with more than 20 commits now keeps the newest 20, not
-  the oldest, so a long PR's merge commit is no longer the one dropped.
-- **A fast-forward push records a landing too.** A PR whose head was pushed to
-  the branch as is used to record nothing, since the head *is* the landed
-  commit, which left its tickets unable to tell the fix had shipped. It now
-  records the head as landing as itself. Needs a Platform that accepts such a
-  landing; an older one refuses it, which the action logs as a warning.
+  on `push`, where GitHub already names the commit.
 - **Test an Android build with `apk-path`.** Point it at one `.apk`, or at a
   directory holding exactly one, together with `product-id` (and optionally
   `environment`). The action uploads the APK, waits until Duku has checked it,
@@ -47,14 +77,6 @@ All notable changes to the `environment` action will be documented in this file.
   Android exploration has no run id, so `run-status` reads `started`, `run-id`
   stays empty and no running PR comment is posted. Without `apk-path` nothing
   changes.
-
-- **Android builds from a pull request land on the PR's own environment.** With
-  `apk-path` on a pull request and no `environment`, the build is recorded on
-  `pr-<number>` (qualified by the fork for a fork's PR) and explored there, so a
-  PR build never replaces your staging build. This needs Preview deployments
-  turned on for the product (Viewport → Product settings → Environments); the
-  step says so when they are off. Name an `environment` to land the build there
-  instead.
 
 - **New output `build-warnings` for Android builds.** It lists what to know
   about the uploaded APK, one per line (for example a debuggable or 32-bit-only
