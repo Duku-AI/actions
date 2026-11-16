@@ -353,6 +353,13 @@ Terminal results appear in Viewport.
 
 ## Inputs
 
+> **Signing in without a stored secret.** This action requires `api-key` or
+> `service-identity`; it doesn't use the GitHub App installation's managed
+> identity. A plain CLI job running the `antidote` CLI 3.0.0 or later
+> needs neither: grant it `permissions: id-token: write`, with the Antidote Bot
+> GitHub App installed on the repository and its installation linked in
+> Viewport → Settings → Integrations.
+
 | Name | Required | Default | Description |
 |------|----------|---------|-------------|
 | `api-key` | One of the two | — | Antidote Platform API key. Generate in Viewport → Settings → API Keys. Required with `apk-path`. |

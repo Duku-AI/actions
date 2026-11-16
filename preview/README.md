@@ -144,7 +144,7 @@ secret into `request-secrets` and remove the old input.
 **Async by design.** On `pull_request` events the action resolves the
 preview URL from GitHub, starts Duku's test of the pull request, and exits
 in seconds. The Platform posts one PR comment per product via the
-[Duku AI GitHub App](https://github.com/apps/duku-ai), listing each mission
+[Antidote Bot GitHub App](https://github.com/apps/antidote-bot), listing each mission
 the test tried with its result, and updates it in place when the test
 finishes and on later pushes — install the App on the repo for the comments
 to land.
@@ -160,7 +160,7 @@ head commit: created when the test starts, and concluded when it finishes:
 
 The check output carries the same results as the PR comment. Issues the
 comment lists never change the check. The check is written server-side by
-the Duku AI GitHub App; the action itself never *writes* to the Checks
+the Antidote Bot GitHub App; the action itself never *writes* to the Checks
 API (the `checks: read` permission below is only for the preview-URL
 resolver). See [Required check](#required-check) to gate merges on it.
 
@@ -192,6 +192,13 @@ fails the step when it cannot, rather than record the workflow's own
 commit as the pull request's.
 
 ## Inputs
+
+> **Signing in without a stored secret.** This action requires `api-key` or
+> `service-identity`; it doesn't use the GitHub App installation's managed
+> identity. A plain CLI job running the `antidote` CLI 3.0.0 or later
+> needs neither: grant it `permissions: id-token: write`, with the Antidote Bot
+> GitHub App installed on the repository and its installation linked in
+> Viewport → Settings → Integrations.
 
 | Name | Required | Default | Description |
 |------|----------|---------|-------------|
@@ -249,11 +256,11 @@ permissions:
 ```
 
 The **workflow token needs no additional scopes for the check run** — it
-is created and concluded server-side by the Duku AI GitHub App, which
+is created and concluded server-side by the Antidote Bot GitHub App, which
 needs **Checks: Read & write** on its installation (new), in addition to
 the pull-request access the comment flow already uses. If your org
 installed the App before this permission existed, GitHub prompts an org
-admin to approve the update (Org Settings → GitHub Apps → Duku AI →
+admin to approve the update (Org Settings → GitHub Apps → Antidote Bot →
 Review request). Until approval the Platform warns and retries the
 check-run writes.
 
@@ -273,7 +280,7 @@ To block merges until the exploration finishes, mark the check as
 required in branch protection. The check run replaces CI jobs that poll
 `batch(id) { status }`.
 
-1. Install the [Duku AI GitHub App](https://github.com/apps/duku-ai) on
+1. Install the [Antidote Bot GitHub App](https://github.com/apps/antidote-bot) on
    the repo and have an org admin **approve the App's Checks permission**
    (see [Permissions](#permissions)). Do this first — a required check
    that the App cannot write blocks every merge.
@@ -348,18 +355,18 @@ CLI's error.
 `npx`. Add `actions/setup-node` before the step on a self-hosted runner.
 
 **Sticky "running" PR comment missing.** Since 0.1.1 the comment is
-posted server-side by the Duku AI GitHub App, not by the action:
+posted server-side by the Antidote Bot GitHub App, not by the action:
 
-- Verify the [Duku AI GitHub App](https://github.com/apps/duku-ai) is
+- Verify the [Antidote Bot GitHub App](https://github.com/apps/antidote-bot) is
   installed on the repo.
 - Check the action logs confirm the exploration actually started (the
   comment is only posted for a started exploration with PR context).
 
 **Terminal results never appear in the PR comment.** The Platform
-updates the comment via the Duku AI GitHub App after exploration
+updates the comment via the Antidote Bot GitHub App after exploration
 finishes:
 
-- Verify the [Duku AI GitHub App](https://github.com/apps/duku-ai) is
+- Verify the [Antidote Bot GitHub App](https://github.com/apps/antidote-bot) is
   installed on the repo.
 - Check exploration status in Viewport — if it's still running, the
   comment will update once it terminates.
