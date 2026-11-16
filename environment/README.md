@@ -16,7 +16,8 @@ settings → Environments; the action names it.
 > pull request run started), naming the preview action.
 >
 > For an Android app, pass the APK you built as `apk-path` — see
-> [Android builds](#android-builds).
+> [Android builds](#android-builds). For an iOS app, pass the simulator build
+> as `app-path` — see [iOS builds](#ios-builds).
 
 From `1.0.0` (listed under Unreleased in the [CHANGELOG](./CHANGELOG.md), shown
 below as `vNEXT`), the action records a web build through the
@@ -307,6 +308,43 @@ The exploration runs on emulators with the product's default device.
 - **Not with Android.** `apk-path` cannot be combined with
   `wait-for-deployment` — the build is live as soon as Duku has checked it.
 
+## iOS builds
+
+An iOS product's build is a simulator build of the app: the `.app` bundle
+Xcode builds for the iOS simulator, inside a `Payload` folder, zipped. Point
+`app-path` at it — one `.app.zip` file, or a directory holding exactly one:
+
+```yaml
+- run: |
+    xcodebuild -scheme MyApp -sdk iphonesimulator -configuration Debug \
+      -derivedDataPath build build
+    mkdir Payload
+    ditto build/Build/Products/Debug-iphonesimulator/MyApp.app Payload/MyApp.app
+    ditto -c -k --norsrc --keepParent Payload MyApp.app.zip
+- uses: duku-ai/actions/environment@environment/vNEXT
+  with:
+    api-key: ${{ secrets.PLATFORM_API_KEY }}
+    product-id: ${{ vars.DUKU_IOS_PRODUCT_ID }}
+    app-path: MyApp.app.zip
+```
+
+It works as `apk-path` does: the upload is skipped when Duku already has the
+bytes, the build lands where an Android build would, and the exploration has
+no run id. The differences:
+
+- **Release name.** The app's version, `CFBundleShortVersionString
+  (CFBundleVersion)`, unless `release-label` is set.
+- **Refused builds.** Duku refuses a device build (`.ipa`), an unzipped
+  `.app` directory, a zip with no `Payload/<name>.app` in it, a build for
+  anything but the iOS simulator, one over 1 GB, one that needs a newer iOS
+  than Duku runs, and a bundle id other than the one the product already
+  tests. An `app-path` on a product that is not an iOS product is refused too.
+- **Warnings.** A build that needs a newer iOS than the product's simulator,
+  or an iPhone-only build on an iPad product, is shown on the step and set as
+  the `build-warnings` output; its runs are refused until that is fixed.
+- **Not with Android.** `app-path` cannot be combined with `apk-path` or
+  `wait-for-deployment`.
+
 ## Async by design
 
 Explorations regularly take 5–40 minutes each. Rather than
@@ -334,6 +372,7 @@ Terminal results appear in Viewport.
 | `wait-commit-path` | No | `/` (the CLI's) | Path appended to the environment URL on each poll (e.g. `/api/health`). |
 | `github-token` | No | *(empty)* | Used only to look the `commit` input up. Falls back to the `GITHUB_TOKEN` env. |
 | `apk-path` | No | — | Android: one `.apk` file, or a directory holding exactly one. Uploads it, waits until Antidote has checked it, records it as this build and explores it. Needs `api-key`. See [Android builds](#android-builds). |
+| `app-path` | No | — | iOS: one simulator `.app.zip` file, or a directory holding exactly one. Uploads it, waits until Antidote has checked it, records it as this build and explores it. Needs `api-key`; not with `apk-path`. See [iOS builds](#ios-builds). |
 | `api-url` | No | `https://platform.duku.ai/graphql` | The Antidote Platform URL. Only its origin is used; with `apk-path` the build is uploaded to `<origin>/graphql`. |
 | `auth-url` | No | _derived from `api-url`_ | **Deprecated, ignored** with a warning, except with `apk-path`: there it is the Keycloak URL the API key signs in at. |
 | `github-installation-id` | No | — | **Deprecated, ignored**, with a warning. |
@@ -347,9 +386,9 @@ Terminal results appear in Viewport.
 | `target-id` | ID of the build the run was attributed to. |
 | `release-id` | ID of the release (app version) the build landed as. |
 | `run-id` | The agentic execution the build started. Empty when nothing was started. |
-| `run-status` | `triggered` (an agentic execution started; its results are in Viewport), `started` (Android: discovery started, no run id; see Viewport) or `skipped`. |
+| `run-status` | `triggered` (an agentic execution started; its results are in Viewport), `started` (Android or iOS: discovery started, no run id; see Viewport) or `skipped`. |
 | `comment-id` | **Deprecated:** always empty. |
-| `build-warnings` | Android only: warnings about the uploaded APK, one per line. Empty without `apk-path`. |
+| `build-warnings` | Android and iOS only: warnings about the uploaded build, one per line. Empty without `apk-path` or `app-path`. |
 
 ## Migrating from `target-id`
 

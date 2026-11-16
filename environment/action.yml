@@ -52,6 +52,11 @@ inputs:
     required: false
     default: ''
 
+  app-path:
+    description: 'Path to the iOS simulator build to test: one .app.zip file (the .app bundle built for the simulator, in a Payload folder, zipped), or a directory holding exactly one .app.zip. When set, the action uploads it, waits until Antidote has checked it, records it as this build and explores it. Needs api-key. Cannot be combined with apk-path.'
+    required: false
+    default: ''
+
   target-id:
     description: 'Removed in v1: setting it fails the step. Use product-id with environment.'
     required: false
@@ -134,10 +139,10 @@ outputs:
     description: 'The agentic execution the build started. Empty when nothing was started.'
 
   run-status:
-    description: 'triggered (an agentic execution started; see Viewport for its results), started (Android: discovery started; no run id, see Viewport), or skipped (nothing was started)'
+    description: 'triggered (an agentic execution started; see Viewport for its results), started (Android or iOS: discovery started; no run id, see Viewport), or skipped (nothing was started)'
 
   build-warnings:
-    description: 'Android only: warnings about the uploaded APK (one per line). Empty without apk-path.'
+    description: 'Android and iOS only: warnings about the uploaded build (one per line). Empty without apk-path or app-path.'
 
   comment-id:
     description: 'Deprecated: always empty.'

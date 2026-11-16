@@ -50,6 +50,13 @@ This is `1.0.0`: the action now records a web build through the antidote CLI.
   of `api-url`.
 - **The deployment wait's four settings default to the CLI's own values**
   (`300`, `10`, `x-commit-sha`, `/`), and are sent only when set.
+- **New `app-path` input uploads an iOS simulator build.** Point it at one
+  `.app.zip` (the simulator `.app` bundle in a `Payload` folder, zipped), or a
+  directory holding exactly one, and the action uploads it, waits until
+  Antidote has checked it, records it as this build and explores it, as
+  `apk-path` does for an APK. It cannot be combined with `apk-path` or
+  `wait-for-deployment`, needs `api-key`, and needs an Antidote Platform that
+  runs iOS products.
 
 - **Test step removed.** The `run-tests`, `test-runs-per-path` and
   `test-paths-per-goal` inputs and the `test-run-id` / `test-run-status`
