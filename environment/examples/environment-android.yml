@@ -1,12 +1,11 @@
-# Android example for the duku-ai/actions/environment action (vNEXT, the first
-# release after v0.5.0): build the APK,
-# then hand it to Duku with apk-path. Copy into .github/workflows/ in your repo
+# Android example for the duku-ai/actions/environment action: build the APK,
+# then hand it to Antidote with apk-path. Copy into .github/workflows/ in your repo
 # and adjust the Gradle task, the APK path and the product-id variable.
 #
 # The build is recorded on the product's default environment (or the one you
 # name).
 
-name: Duku Android
+name: Antidote Android
 
 on:
   push:
@@ -14,7 +13,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: duku-android-${{ github.ref }}
+  group: antidote-android-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -33,13 +32,13 @@ jobs:
       # Any universal APK works; an app bundle (.aab) or split APKs do not.
       - run: ./gradlew assembleRelease
 
-      - id: duku
-        uses: duku-ai/actions/environment@environment/vNEXT
+      - id: antidote
+        uses: duku-ai/actions/environment@environment/v1
         with:
           api-key: ${{ secrets.PLATFORM_API_KEY }}
-          product-id: ${{ vars.DUKU_ANDROID_PRODUCT_ID }}
+          product-id: ${{ vars.ANTIDOTE_ANDROID_PRODUCT_ID }}
           # One .apk, or a directory holding exactly one.
           apk-path: app/build/outputs/apk/release
 
-      - if: steps.duku.outputs.build-warnings != ''
-        run: echo "Duku flagged this build:" && echo "${{ steps.duku.outputs.build-warnings }}"
+      - if: steps.antidote.outputs.build-warnings != ''
+        run: echo "Antidote flagged this build:" && echo "${{ steps.antidote.outputs.build-warnings }}"

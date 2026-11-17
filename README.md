@@ -1,23 +1,23 @@
-# Duku Actions
+# Antidote Actions
 
-Reusable GitHub Actions published by [Duku AI](https://duku.ai) for integrating Duku into customer CI pipelines.
+Reusable GitHub Actions published by [Antidote](https://getantidote.com) for integrating Antidote into customer CI pipelines.
 
 ## Available actions
 
 | Action | Status | Description |
 |---|---|---|
-| [`preview/`](./preview) | _pre-release_ | Reports a deployed preview URL to the Duku platform for evaluation. Web products only. |
-| [`environment/`](./environment) | _pre-release_ | Records a commit's build on one of your environments and triggers an exploration against it on push / schedule / workflow_dispatch. With `apk-path`, uploads and explores an Android build. |
+| [`preview/`](./preview) | `1.x` | Reports a deployed preview URL to the Antidote platform for evaluation. Web products only. |
+| [`environment/`](./environment) | `1.x` | Records a commit's build on one of your environments and triggers an exploration against it on push / schedule / workflow_dispatch. With `apk-path`, uploads and explores an Android build. |
 
 ## Pinning
 
-Customers should pin to an immutable version tag (recommended) or to the floating major tag (available once `v1.0.0` is cut):
+Pin to an immutable version tag (recommended) or to the floating major tag:
 
 ```yaml
 # Pin to a specific release (recommended for reproducibility)
-- uses: duku-ai/actions/preview@preview/v0.5.0
+- uses: duku-ai/actions/preview@preview/v1.0.0
 
-# Pin to the floating major (auto-updates within v1.x.y; available post-1.0)
+# Pin to the floating major (auto-updates within v1.x.y)
 - uses: duku-ai/actions/preview@preview/v1
 ```
 
@@ -54,7 +54,7 @@ To check what prod actually has, unauthenticated (validation runs before auth,
 so no credentials are needed):
 
 ```
-curl -sS https://platform.duku.ai/graphql -H 'content-type: application/json' \
+curl -sS https://platform.getantidote.com/graphql -H 'content-type: application/json' \
   -d '{"query":"query{subject(id:\"probe\"){enabledFeatures}}"}'
 ```
 
@@ -95,4 +95,4 @@ any action's `package.json` version below the latest published tag.
 
 ## License
 
-[MIT](./LICENSE) © Duku AI Ltd
+[MIT](./LICENSE) © TCWL Group Ltd

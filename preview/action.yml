@@ -1,15 +1,15 @@
-name: 'Duku Preview'
+name: 'Antidote Preview'
 description: "Records a pull request's preview as a build of an Antidote product and tests it, through the antidote CLI. The runner needs Node 22.4 or newer with npx (actions/setup-node), on Linux or macOS. Antidote posts the results on the pull request."
-author: 'Duku AI'
+author: 'Antidote'
 
 inputs:
   api-url:
     description: 'The Antidote Platform URL. Only its origin is used, so the old GraphQL endpoint URL still works.'
     required: false
-    default: 'https://platform.duku.ai/graphql'
+    default: 'https://platform.getantidote.com'
 
   api-key:
-    description: 'An Antidote API key (Viewport Settings > API Keys). Set this or service-identity.'
+    description: 'An Antidote API key (Settings > API Keys in the dashboard). Set this or service-identity.'
     required: false
     default: ''
 
@@ -19,7 +19,7 @@ inputs:
     default: ''
 
   oidc-audience:
-    description: "The audience of the GitHub OIDC token, only with service-identity. Empty uses the Platform's origin, the default audience of a trust rule made in Viewport."
+    description: "The audience of the GitHub OIDC token, only with service-identity. Empty uses the Platform's origin, the default audience of a trust rule made in the dashboard."
     required: false
     default: ''
 
@@ -29,7 +29,7 @@ inputs:
     default: ''
 
   product-id:
-    description: 'Duku product ID (from Viewport → Products)'
+    description: 'Antidote product ID (from the dashboard → Products)'
     required: true
 
   vercel-automation-bypass-secret:

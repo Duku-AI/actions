@@ -1,10 +1,10 @@
-name: 'Duku Environment'
-description: 'Records the build a commit produced against one of your Antidote environments as a release and tests it, through the antidote CLI, so for a web build the runner needs Node 22.4 or newer with npx (actions/setup-node), on Linux or macOS. The action starts the test and exits; results appear in Viewport. For push / schedule / workflow_dispatch: a run whose event carries a pull request fails (use the preview action).'
-author: 'Duku AI'
+name: 'Antidote Environment'
+description: 'Records the build a commit produced against one of your Antidote environments as a release and tests it, through the antidote CLI, so for a web build the runner needs Node 22.4 or newer with npx (actions/setup-node), on Linux or macOS. The action starts the test and exits; results appear in the dashboard. For push / schedule / workflow_dispatch: a run whose event carries a pull request fails (use the preview action).'
+author: 'Antidote'
 
 inputs:
   api-key:
-    description: 'An Antidote API key (Viewport Settings → API Keys). Set this or service-identity. Required with apk-path.'
+    description: 'An Antidote API key (Settings → API Keys in the dashboard). Set this or service-identity. Required with apk-path.'
     required: false
     default: ''
 
@@ -14,16 +14,16 @@ inputs:
     default: ''
 
   oidc-audience:
-    description: "The audience of the GitHub OIDC token, only with service-identity. Empty uses the Platform's origin, the default audience of a trust rule made in Viewport."
+    description: "The audience of the GitHub OIDC token, only with service-identity. Empty uses the Platform's origin, the default audience of a trust rule made in the dashboard."
     required: false
     default: ''
 
   product-id:
-    description: 'Antidote product ID (from Viewport → Products). Records a build per commit on one of its environments.'
+    description: 'Antidote product ID (from the dashboard → Products). Records a build per commit on one of its environments.'
     required: true
 
   environment:
-    description: 'Name of an environment declared on the product (Viewport → Product settings → Environments), e.g. staging. Optional with `product-id`: when empty the run lands on the product''s default environment.'
+    description: 'Name of an environment declared on the product (the dashboard → Product settings → Environments), e.g. staging. Optional with `product-id`: when empty the run lands on the product''s default environment.'
     required: false
     default: ''
 
@@ -63,19 +63,19 @@ inputs:
     default: ''
 
   url:
-    description: "Removed in v1: setting it fails the step. The environment's URL is set in Viewport → Product settings → Environments."
+    description: "Removed in v1: setting it fails the step. The environment's URL is set in the dashboard → Product settings → Environments."
     required: false
     default: ''
 
   exploration-url:
-    description: "Removed in v1: setting it fails the step. The environment's URL is set in Viewport → Product settings → Environments."
+    description: "Removed in v1: setting it fails the step. The environment's URL is set in the dashboard → Product settings → Environments."
     required: false
     default: ''
 
   api-url:
     description: 'The Antidote Platform URL. Only its origin is used, so the old GraphQL endpoint URL still works; with apk-path the build is uploaded to <origin>/graphql.'
     required: false
-    default: 'https://platform.duku.ai/graphql'
+    default: 'https://platform.getantidote.com'
 
   auth-url:
     description: 'Deprecated and ignored, except with apk-path: the antidote CLI finds the sign-in endpoint itself. With apk-path it is the Keycloak URL the API key signs in at, derived from api-url when empty.'
@@ -139,7 +139,7 @@ outputs:
     description: 'The agentic execution the build started. Empty when nothing was started.'
 
   run-status:
-    description: 'triggered (an agentic execution started; see Viewport for its results), started (Android or iOS: discovery started; no run id, see Viewport), or skipped (nothing was started)'
+    description: 'triggered (an agentic execution started; see the dashboard for its results), started (Android or iOS: discovery started; no run id, see the dashboard), or skipped (nothing was started)'
 
   build-warnings:
     description: 'Android and iOS only: warnings about the uploaded build (one per line). Empty without apk-path or app-path.'

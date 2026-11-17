@@ -8,14 +8,14 @@
 # Antidote Bot GitHub App; install it on the repo:
 # https://github.com/apps/antidote-bot
 
-name: Duku preview
+name: Antidote preview
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
 
 concurrency:
-  group: duku-preview-${{ github.event.pull_request.number }}
+  group: antidote-preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: duku-ai/actions/preview@preview/v0.5.0
+      - uses: duku-ai/actions/preview@preview/v1
         with:
           api-key: ${{ secrets.PLATFORM_API_KEY }}
           # Or, with no stored secret, a service identity whose trust rule

@@ -1,6 +1,6 @@
-# Duku Preview GitHub Action
+# Antidote Preview GitHub Action
 
-Run a Duku exploration against your preview deployment on every pull
+Run an Antidote exploration against your preview deployment on every pull
 request and get a sticky PR comment with the top errors discovered.
 
 > For long-lived environments (staging, prod canary, customer-specific
@@ -10,11 +10,9 @@ request and get a sticky PR comment with the top errors discovered.
 > recording anything; test an Android build with the environment action's
 > [`apk-path`](../environment#android-builds) instead.
 
-## Status
+## Requirements
 
-This action is **pre-release** (`0.x`). The next release, `1.0.0` (listed
-under Unreleased in the [CHANGELOG](./CHANGELOG.md), shown below as `vNEXT`),
-records the build through the [antidote CLI](../../apps/cli/duku/README.md)
+The action records the build through the [antidote CLI](https://www.npmjs.com/package/@getantidote/cli)
 (`npx --yes @getantidote/cli@3 record-preview`), as Antidote's GitLab component
 does. So the runner needs:
 
@@ -40,7 +38,7 @@ permissions:
   contents: read
   deployments: read      # required for preview URL resolution
 
-- uses: duku-ai/actions/preview@preview/v0.5.0
+- uses: duku-ai/actions/preview@preview/v1
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
@@ -48,8 +46,8 @@ permissions:
 
 ### Sign in with a service identity (no stored secret)
 
-From `vNEXT`, the action can sign in with the job's GitHub OIDC token instead
-of an API key. An org admin creates a service identity in Viewport → Settings →
+The action can sign in with the job's GitHub OIDC token instead
+of an API key. An org admin creates a service identity in the dashboard → Settings →
 Service identities, with a trust rule for
 `https://token.actions.githubusercontent.com` and your repository; give its id
 to the action and let the job request a token:
@@ -60,7 +58,7 @@ permissions:
   deployments: read
   id-token: write          # the job's OIDC token, exchanged for an Antidote session
 
-- uses: duku-ai/actions/preview@preview/vNEXT
+- uses: duku-ai/actions/preview@preview/v1
   with:
     service-identity: svc_...
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
@@ -68,7 +66,7 @@ permissions:
 
 Set `api-key` or `service-identity`, not both. `oidc-audience` sets the
 token's audience when the trust rule expects another one; by default it is the
-Platform's origin, which is what a trust rule made in Viewport expects.
+Platform's origin, which is what a trust rule made in the dashboard expects.
 
 ### With a protected preview (request headers and secrets)
 
@@ -77,16 +75,10 @@ basic auth turns away a browser that does not send the right header. Give the
 action the headers each run sends (`request-headers`) and the secrets those
 headers reference (`request-secrets`).
 
-These two inputs need the first release of this action after
-`preview/v0.5.0` (listed under Unreleased in the [CHANGELOG](./CHANGELOG.md));
-`v0.5.0` does not have them. Until that release is tagged, keep `@preview/v0.5.0`
-with `vercel-automation-bypass-secret`.
-
 For Vercel Deployment Protection:
 
 ```yaml
-# vNEXT: the first release after v0.5.0, see the note above.
-- uses: duku-ai/actions/preview@preview/vNEXT
+- uses: duku-ai/actions/preview@preview/v1
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
@@ -117,7 +109,7 @@ How the two inputs work:
   `Bearer`, `Key` or `Token` (`authorization: Basic {{secret.staging_basic}}`).
 - `request-secrets` takes one `name=value` per line; a name is 1 to 64 of
   `a-z`, `0-9` and `_`, and not `__proto__`. The action masks every value in
-  the job log. Duku stores it encrypted on this build and never returns it in
+  the job log. Antidote stores it encrypted on this build and never returns it in
   any read. A line with an empty value fails the step: GitHub leaves
   `${{ secrets.NAME }}` empty when the run cannot read the secret, for example
   on a pull request from a fork or one opened by Dependabot.
@@ -142,7 +134,7 @@ secret into `request-secrets` and remove the old input.
 ## Behavior
 
 **Async by design.** On `pull_request` events the action resolves the
-preview URL from GitHub, starts Duku's test of the pull request, and exits
+preview URL from GitHub, starts Antidote's test of the pull request, and exits
 in seconds. The Platform posts one PR comment per product via the
 [Antidote Bot GitHub App](https://github.com/apps/antidote-bot), listing each mission
 the test tried with its result, and updates it in place when the test
@@ -174,7 +166,7 @@ the next push, so exploring it can report a different build's behaviour as
 this commit's. Pass `preview-url-source: comments` to opt into that anyway.
 
 Set `run-exploration: false` (`start-run` is a deprecated alias) to skip the
-exploration and only register the build with Duku.
+exploration and only register the build with Antidote.
 
 On `push`, `schedule`, and `workflow_dispatch` triggers the action starts
 an exploration and exits — no sticky comment is posted, because there is
@@ -198,14 +190,14 @@ commit as the pull request's.
 > identity. A plain CLI job running the `antidote` CLI 3.0.0 or later
 > needs neither: grant it `permissions: id-token: write`, with the Antidote Bot
 > GitHub App installed on the repository and its installation linked in
-> Viewport → Settings → Integrations.
+> the dashboard → Settings → Integrations.
 
 | Name | Required | Default | Description |
 |------|----------|---------|-------------|
-| `api-key` | One of the two | — | Antidote Platform API key. Generate in Viewport → Settings → API Keys. |
+| `api-key` | One of the two | — | Antidote Platform API key. Generate in the dashboard → Settings → API Keys. |
 | `service-identity` | One of the two | — | A service identity's id (`svc_…`) to sign in with the job's GitHub OIDC token. The job needs `permissions: id-token: write`. See [Sign in with a service identity](#sign-in-with-a-service-identity-no-stored-secret). |
 | `oidc-audience` | No | _Platform origin_ | The GitHub OIDC token's audience, only with `service-identity`. |
-| `product-id` | Yes | — | Duku product ID (from Viewport → Products). |
+| `product-id` | Yes | — | Antidote product ID (from the dashboard → Products). |
 | `run-exploration` | No | `true` | Start an exploration after registering the build. Set to `false` to register the build only. |
 | `start-run` | No | `true` | **Deprecated alias for `run-exploration`.** |
 | `release-label` | No | — | Human-readable release name for this build, e.g. `1.4.2`. Recorded alongside the commit SHA and used as the build version. |
@@ -233,7 +225,7 @@ commit as the pull request's.
 
 | Name | Description |
 |------|-------------|
-| `target-id` | ID of the build registered with Duku. |
+| `target-id` | ID of the build registered with Antidote. |
 | `target-name` | Human-readable name of the build. |
 | `target-version` | Version assigned to the build. |
 | `run-id` | The agentic execution the build started (on a pull request, its agentic pull request test). Empty when nothing was started. |
@@ -271,7 +263,7 @@ Add the following in your repo (Settings → Secrets and variables → Actions):
 | Name | Kind | Purpose |
 |------|------|---------|
 | `PLATFORM_API_KEY` | Secret | Antidote Platform API key; not needed with `service-identity`. |
-| `PLATFORM_PRODUCT_ID` | Variable | Duku product ID (not sensitive). |
+| `PLATFORM_PRODUCT_ID` | Variable | Antidote product ID (not sensitive). |
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | Secret (optional) | Vercel Deployment Protection bypass for protected previews, passed in `request-secrets`. |
 
 ## Required check
@@ -303,7 +295,7 @@ protection rule.
 
 Semantics worth knowing:
 
-- **The check name is keyed on your Duku product**, not the PR or batch,
+- **The check name is keyed on your Antidote product**, not the PR or batch,
   so it is stable across PRs.
 - **Renaming the product renames the check** — update the branch
   protection rule after a rename, or merges block on a check that will
@@ -328,7 +320,7 @@ push, and the run would attribute another build's behaviour to this commit.
 Opt in explicitly if you want it anyway:
 
 ```yaml
-- uses: duku-ai/actions/preview@preview/v0.5.0
+- uses: duku-ai/actions/preview@preview/v1
   with:
     api-key: ${{ secrets.PLATFORM_API_KEY }}
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
@@ -343,8 +335,8 @@ Opt in explicitly if you want it anyway:
 ## Troubleshooting
 
 **Action not found.** Confirm you're pinning a tag that exists, e.g.
-`duku-ai/actions/preview@preview/v0.5.0`. The floating major
-(`preview/v1`) is only published once a stable `1.x` release is cut.
+`duku-ai/actions/preview@preview/v1.0.0`. The floating major
+(`preview/v1`) follows the newest stable `1.x` release.
 
 **API connection fails.** Verify `api-url` is reachable from GitHub
 Actions runners, the `api-key` is current (or the service identity's trust
@@ -368,7 +360,7 @@ finishes:
 
 - Verify the [Antidote Bot GitHub App](https://github.com/apps/antidote-bot) is
   installed on the repo.
-- Check exploration status in Viewport — if it's still running, the
+- Check exploration status in the dashboard — if it's still running, the
   comment will update once it terminates.
 
 **Required check stuck on "Expected — waiting for status".** GitHub

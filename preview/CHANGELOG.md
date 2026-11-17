@@ -4,6 +4,8 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-17
+
 This is `1.0.0`: the action now records the build through the antidote CLI.
 
 - **Runs `antidote record-preview`.** The action reads GitHub's context as
@@ -53,6 +55,11 @@ This is `1.0.0`: the action now records the build through the antidote CLI.
   origin the run explores. A secret line with no value fails the step with a
   note that GitHub may not have passed the secret to this run (a fork's pull
   request, Dependabot).
+
+- **Named for Antidote.** The action is `Antidote Preview`, and its messages
+  and docs say Antidote. You still reference it as `duku-ai/actions/preview`.
+- **`api-url` defaults to `https://platform.getantidote.com`.**
+  `https://platform.duku.ai`, the former default, still works.
 
 ## [0.5.0] - 2026-10-07
 

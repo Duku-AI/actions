@@ -4,6 +4,8 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-17
+
 This is `1.0.0`: the action now records a web build through the antidote CLI.
 
 - **Runs `antidote record-release`.** The action reads GitHub's context as
@@ -76,7 +78,7 @@ This is `1.0.0`: the action now records a web build through the antidote CLI.
   on `push`, where GitHub already names the commit.
 - **Test an Android build with `apk-path`.** Point it at one `.apk`, or at a
   directory holding exactly one, together with `product-id` (and optionally
-  `environment`). The action uploads the APK, waits until Duku has checked it,
+  `environment`). The action uploads the APK, waits until Antidote has checked it,
   records it as this commit's build and explores it. The release label defaults
   to the APK's version (`versionName (versionCode)`); an explicit
   `release-label` still wins. `apk-path` cannot be combined with `target-id` or
@@ -89,6 +91,11 @@ This is `1.0.0`: the action now records a web build through the antidote CLI.
   about the uploaded APK, one per line (for example a debuggable or 32-bit-only
   build), and each warning is also shown on the step. It is empty without
   `apk-path`.
+
+- **Named for Antidote.** The action is `Antidote Environment`, and its messages
+  and docs say Antidote. You still reference it as `duku-ai/actions/environment`.
+- **`api-url` defaults to `https://platform.getantidote.com`.**
+  `https://platform.duku.ai`, the former default, still works.
 
 ## [0.5.0] - 2026-10-07
 

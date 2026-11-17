@@ -5,18 +5,18 @@
 # Trigger it at the end of your nightly job (e.g. after a data reset), passing
 # the build that is deployed:
 #
-#   gh workflow run duku-nightly.yml -f release=2026.09.24-build.812
+#   gh workflow run antidote-nightly.yml -f release=2026.09.24-build.812
 #
 # or, from a CI with no gh CLI, a repository_dispatch:
 #
 #   curl -sS -X POST https://api.github.com/repos/<owner>/<repo>/dispatches \
 #     -H "Authorization: Bearer $GITHUB_TOKEN" \
-#     -d '{"event_type":"duku-nightly","client_payload":{"release":"2026.09.24-build.812"}}'
+#     -d '{"event_type":"antidote-nightly","client_payload":{"release":"2026.09.24-build.812"}}'
 #
-# Each distinct `release` becomes its own release in Viewport. Sending the same
+# Each distinct `release` becomes its own release in the dashboard. Sending the same
 # one again re-runs against that release rather than creating a new one.
 
-name: Duku nightly
+name: Antidote nightly
 
 on:
   workflow_dispatch:
@@ -25,10 +25,10 @@ on:
         description: 'The build deployed to the environment, e.g. 2026.09.24-build.812'
         required: true
   repository_dispatch:
-    types: [duku-nightly]
+    types: [antidote-nightly]
 
 concurrency:
-  group: duku-nightly
+  group: antidote-nightly
   cancel-in-progress: false
 
 jobs:
@@ -37,12 +37,12 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: duku-ai/actions/environment@environment/v0.5.0
+      - uses: duku-ai/actions/environment@environment/v1
         with:
           api-key: ${{ secrets.PLATFORM_API_KEY }}
-          product-id: ${{ vars.DUKU_PRODUCT_ID }}
+          product-id: ${{ vars.ANTIDOTE_PRODUCT_ID }}
           # Must match an environment declared in
-          # Viewport → Product settings → Environments.
+          # the dashboard → Product settings → Environments.
           environment: staging
           release-label: ${{ inputs.release || github.event.client_payload.release }}
           # Fail on a missing release rather than fall back to this repo's git describe.
