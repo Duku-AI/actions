@@ -4,6 +4,21 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- **`apk-path` runs `antidote upload-build`.** The action runs
+  `npx --yes @getantidote/cli@3 upload-build` with the APK and the same
+  commit, branch and run flags as `record-release` gets. The CLI uploads and
+  checks the APK, and the server records the build and tests it on the
+  product's devices as it tests a web build: `run-id` names its agentic
+  execution, `run-status` reads `triggered`, and a push records landings.
+  `apk-path` still cannot be combined with `wait-for-deployment`.
+- **`apk-path` signs in like a web build**, with `api-key` or
+  `service-identity`. Only `app-path` (iOS) still needs `api-key`, and only
+  there does `auth-url` name where the key signs in.
+- **An Android build needs Node 22.4 or newer with `npx`** on the runner, as a
+  web build does (the CLI's minimum).
+
 ## [1.0.0] - 2026-11-17
 
 This is `1.0.0`: the action now records a web build through the antidote CLI.

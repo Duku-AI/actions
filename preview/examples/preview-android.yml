@@ -1,0 +1,54 @@
+# Android pull_request example for the duku-ai/actions/preview action: build the
+# pull request's APK, then hand it to Antidote with apk-path, which runs
+# `antidote upload-build`. Copy into .github/workflows/ in your repo and adjust
+# the Gradle task, the APK path and the product-id variable.
+#
+# Antidote tests the APK on the product's primary device and posts the results on
+# the pull request through the Antidote Bot GitHub App; install it on the repo:
+# https://github.com/apps/antidote-bot
+
+name: Antidote Android preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: antidote-android-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write        # only with service-identity
+    steps:
+      - uses: actions/checkout@v4
+
+      # The action runs the antidote CLI, which needs Node 22.4 or newer.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Any universal APK works; an app bundle (.aab) or split APKs do not.
+      - run: ./gradlew assembleDebug
+
+      - id: antidote
+        uses: duku-ai/actions/preview@preview/v1
+        with:
+          api-key: ${{ secrets.PLATFORM_API_KEY }}
+          # Or, with no stored secret, a service identity whose trust rule
+          # accepts this repository's GitHub OIDC tokens:
+          # service-identity: svc_...
+          product-id: ${{ vars.ANTIDOTE_ANDROID_PRODUCT_ID }}
+          # One .apk, or a directory holding exactly one.
+          apk-path: app/build/outputs/apk/debug
+
+      - if: steps.antidote.outputs.build-warnings != ''
+        run: echo "Antidote flagged this build:" && echo "${{ steps.antidote.outputs.build-warnings }}"

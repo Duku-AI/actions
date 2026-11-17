@@ -4,6 +4,21 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Test a pull request's Android build with `apk-path`.** Point it at one
+  `.apk`, or at a directory holding exactly one. The action runs
+  `npx --yes @getantidote/cli@3 upload-build` with the pull request's number,
+  head, branch, title and run link; Antidote tests the APK on the product's
+  primary device and posts the results on the pull request, as for a web
+  preview.
+  `run-id` names the agentic pull request test, and the new `build-warnings`
+  output lists what to know about the APK. A push with no pull request fails
+  the step, and so do the preview URL inputs (`exploration-url`,
+  `wait-for-target-seconds`, `request-headers`, `request-secrets`,
+  `vercel-automation-bypass-secret`). Without `apk-path` an Android product is
+  still refused by the Platform before anything is recorded.
+
 ## [1.0.0] - 2026-11-17
 
 This is `1.0.0`: the action now records the build through the antidote CLI.

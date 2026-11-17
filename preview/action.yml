@@ -1,5 +1,5 @@
 name: 'Antidote Preview'
-description: "Records a pull request's preview as a build of an Antidote product and tests it, through the antidote CLI. The runner needs Node 22.4 or newer with npx (actions/setup-node), on Linux or macOS. Antidote posts the results on the pull request."
+description: "Records a pull request's preview, or with apk-path its Android build, as a build of an Antidote product and tests it, through the antidote CLI. The runner needs Node 22.4 or newer with npx (actions/setup-node), on Linux or macOS. Antidote posts the results on the pull request."
 author: 'Antidote'
 
 inputs:
@@ -24,7 +24,7 @@ inputs:
     default: ''
 
   auth-url:
-    description: "Deprecated and ignored: the antidote CLI finds the sign-in endpoint itself. Only the environment action's apk-path still reads it."
+    description: "Deprecated and ignored: the antidote CLI finds the sign-in endpoint itself. Only the environment action's app-path still reads it."
     required: false
     default: ''
 
@@ -59,6 +59,11 @@ inputs:
 
   release-label:
     description: 'Optional human-readable release name for this build, e.g. 1.4.2. Recorded alongside the commit SHA and used as the build version.'
+    required: false
+    default: ''
+
+  apk-path:
+    description: "A pull request's Android build: one .apk file, or a directory holding exactly one. When set, the action runs `antidote upload-build`: it uploads the APK, waits until Antidote has checked it, records it as the pull request's build and tests it on the product's primary device. Needs a pull request (a push fails the step) and cannot be combined with exploration-url, wait-for-target-seconds, request-headers, request-secrets or vercel-automation-bypass-secret."
     required: false
     default: ''
 
@@ -162,6 +167,9 @@ outputs:
 
   preview-url-source:
     description: "How the preview URL was found: deployments, checks, statuses, comments, or override when exploration-url was set. Empty when no URL was sent."
+
+  build-warnings:
+    description: 'apk-path only: warnings about the uploaded APK, one per line. Unset without apk-path.'
 
 runs:
   using: 'node24'

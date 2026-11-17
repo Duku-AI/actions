@@ -19,10 +19,10 @@ settings → Environments; the action names it.
 > [Android builds](#android-builds). For an iOS app, pass the simulator build
 > as `app-path` — see [iOS builds](#ios-builds).
 
-The action records a web build through the
+The action records a build through the
 [antidote CLI](https://www.npmjs.com/package/@getantidote/cli)
-(`npx --yes @getantidote/cli@3 record-release`), as Antidote's GitLab component
-does. So for a web build the runner needs:
+(`npx --yes @getantidote/cli@3 record-release`, or `upload-build` for an
+Android build), as Antidote's GitLab components do. So the runner needs:
 
 - **Node 22.4 or newer, with `npx`**: the CLI's minimum (`engines` in its
   `package.json`). Unless the runner's own Node is that new, add this step
@@ -109,8 +109,8 @@ permissions:
     environment: staging
 ```
 
-Set `api-key` or `service-identity`, not both. An Android build (`apk-path`)
-still needs `api-key`.
+Set `api-key` or `service-identity`, not both. Both work for an Android build
+(`apk-path`) too.
 
 ## Nightly runs against a release you name
 
@@ -279,10 +279,13 @@ holding exactly one (patterns are not expanded):
     apk-path: app/build/outputs/apk/release
 ```
 
-The action uploads the APK straight to Antidote's storage (re-running a job with
-the same bytes skips the upload), waits until Antidote has checked it — at most 15
-minutes — records it as this commit's build and starts an exploration on it.
-The exploration runs on emulators with the product's default device.
+The action runs `antidote upload-build` with the APK and this run's commit,
+branch and run link. The CLI uploads the APK straight to Antidote's storage
+(re-running a job with the same bytes skips the upload), waits until Antidote
+has checked it — at most 15 minutes — and records it as this commit's build.
+Antidote then tests it as it tests a web build: it replays the product's flows
+and queues a discovery, on emulators with the product's devices (the dashboard
+→ Product settings). `run-id` names the agentic execution, as for a web build.
 
 - **Release name.** The APK's version, `versionName (versionCode)`, e.g.
   `1.4.2 (42)`. An explicit `release-label` still wins; `release-label-from`
@@ -295,15 +298,15 @@ The exploration runs on emulators with the product's default device.
   with Antidote's reason, and nothing is recorded or explored.
 - **Warnings.** Things worth knowing that never block a build — debuggable,
   test-only, 32-bit-only, over 300 MB, or needing a newer Android than the
-  default device — are shown on the step and set as the `build-warnings`
+  product's primary device — are shown on the step and set as the `build-warnings`
   output. So is the capture hint: a build that does not trust Antidote's network
   capture certificate still runs, but runs record only the hosts it connects
   to, not its HTTP requests and errors. To have them captured, upload a debug
   build that bundles the certificate in `res/raw` and trusts it in
   `<debug-overrides>` of its network security config (the dashboard → Product
   settings → App has the certificate and the config).
-- **Exploration status.** An Android exploration has no run id: `run-status`
-  reads `started` and `run-id` stays empty. Follow it in the dashboard.
+- **Landings.** On a push the build records where each of the pushed
+  commit's pull requests landed, as a web build does.
 - **Not with Android.** `apk-path` cannot be combined with
   `wait-for-deployment` — the build is live as soon as Antidote has checked it.
 
@@ -327,9 +330,10 @@ Xcode builds for the iOS simulator, inside a `Payload` folder, zipped. Point
     app-path: MyApp.app.zip
 ```
 
-It works as `apk-path` does: the upload is skipped when Antidote already has the
-bytes, the build lands where an Android build would, and the exploration has
-no run id. The differences:
+The action uploads it itself through the Antidote API, so `app-path` needs
+`api-key`. The upload is skipped when Antidote already has the bytes, the build
+lands where an Android build would, and the exploration has no run id. The
+other differences from `apk-path`:
 
 - **Release name.** The app's version, `CFBundleShortVersionString
   (CFBundleVersion)`, unless `release-label` is set.
@@ -361,7 +365,7 @@ Terminal results appear in the dashboard.
 
 | Name | Required | Default | Description |
 |------|----------|---------|-------------|
-| `api-key` | One of the two | — | Antidote Platform API key. Generate in the dashboard → Settings → API Keys. Required with `apk-path`. |
+| `api-key` | One of the two | — | Antidote Platform API key. Generate in the dashboard → Settings → API Keys. Required with `app-path`. |
 | `service-identity` | One of the two | — | A service identity's id (`svc_…`) to sign in with the job's GitHub OIDC token. The job needs `permissions: id-token: write`. |
 | `oidc-audience` | No | _Platform origin_ | The GitHub OIDC token's audience, only with `service-identity`. |
 | `product-id` | Yes | — | Antidote product ID (the dashboard → Products). |
@@ -377,10 +381,10 @@ Terminal results appear in the dashboard.
 | `wait-commit-header` | No | `x-commit-sha` (the CLI's) | Response header the app exposes its deployed commit hash on (case-insensitive; full SHA or 7-char short form). |
 | `wait-commit-path` | No | `/` (the CLI's) | Path appended to the environment URL on each poll (e.g. `/api/health`). |
 | `github-token` | No | *(empty)* | Used only to look the `commit` input up. Falls back to the `GITHUB_TOKEN` env. |
-| `apk-path` | No | — | Android: one `.apk` file, or a directory holding exactly one. Uploads it, waits until Antidote has checked it, records it as this build and explores it. Needs `api-key`. See [Android builds](#android-builds). |
+| `apk-path` | No | — | Android: one `.apk` file, or a directory holding exactly one. Runs `antidote upload-build`: uploads it, waits until Antidote has checked it, records it as this build and tests it. See [Android builds](#android-builds). |
 | `app-path` | No | — | iOS: one simulator `.app.zip` file, or a directory holding exactly one. Uploads it, waits until Antidote has checked it, records it as this build and explores it. Needs `api-key`; not with `apk-path`. See [iOS builds](#ios-builds). |
-| `api-url` | No | `https://platform.getantidote.com` | The Antidote Platform URL. Only its origin is used; with `apk-path` the build is uploaded to `<origin>/graphql`. |
-| `auth-url` | No | _derived from `api-url`_ | **Deprecated, ignored** with a warning, except with `apk-path`: there it is the Keycloak URL the API key signs in at. |
+| `api-url` | No | `https://platform.getantidote.com` | The Antidote Platform URL. Only its origin is used; with `app-path` the build is uploaded to `<origin>/graphql`. |
+| `auth-url` | No | _derived from `api-url`_ | **Deprecated, ignored** with a warning, except with `app-path`: there it is the Keycloak URL the API key signs in at. |
 | `github-installation-id` | No | — | **Deprecated, ignored**, with a warning. |
 | `target-id`, `url`, `exploration-url` | No | — | **Removed in v1:** setting one fails the step. See below. |
 | `repository`, `pr-number` | No | — | **Removed in v1:** setting one fails the step. Pull requests are the [`preview`](../preview) action's. |
@@ -392,7 +396,7 @@ Terminal results appear in the dashboard.
 | `target-id` | ID of the build the run was attributed to. |
 | `release-id` | ID of the release (app version) the build landed as. |
 | `run-id` | The agentic execution the build started. Empty when nothing was started. |
-| `run-status` | `triggered` (an agentic execution started; its results are in the dashboard), `started` (Android or iOS: discovery started, no run id; see the dashboard) or `skipped`. |
+| `run-status` | `triggered` (an agentic execution started; its results are in the dashboard), `started` (iOS: discovery started, no run id; see the dashboard) or `skipped`. |
 | `comment-id` | **Deprecated:** always empty. |
 | `build-warnings` | Android and iOS only: warnings about the uploaded build, one per line. Empty without `apk-path` or `app-path`. |
 
@@ -421,7 +425,7 @@ product's environments is not supported. A workflow can stay pinned to
 
 - [`examples/environment-push.yml`](./examples/environment-push.yml) — minimal `push`-trigger workflow
 - [`examples/environment-nightly.yml`](./examples/environment-nightly.yml) — nightly run against a release you name, triggered from your own job
-- [`examples/environment-android.yml`](./examples/environment-android.yml) — build an APK and explore it on each push
+- [`examples/environment-android.yml`](./examples/environment-android.yml) — build an APK and test it on each push
 
 ## Status
 

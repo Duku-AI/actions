@@ -48,7 +48,9 @@ Both actions run the server's tools (`record_preview`, `record_release`) through
 the antidote CLI, which takes only the flags prod's tool declares: a flag prod
 does not have yet fails the step. So the rule above is about breakage too, not
 only about customers getting the behaviour the CHANGELOG promises. The
-`environment` action's Android branch (`apk-path`) still calls GraphQL directly.
+`environment` action's Android branch (`apk-path`) runs `upload-build` the same
+way, so it also needs a published CLI that has the command. Its iOS branch
+(`app-path`) still calls GraphQL directly.
 
 To check what prod actually has, unauthenticated (validation runs before auth,
 so no credentials are needed):

@@ -1,10 +1,10 @@
 name: 'Antidote Environment'
-description: 'Records the build a commit produced against one of your Antidote environments as a release and tests it, through the antidote CLI, so for a web build the runner needs Node 22.4 or newer with npx (actions/setup-node), on Linux or macOS. The action starts the test and exits; results appear in the dashboard. For push / schedule / workflow_dispatch: a run whose event carries a pull request fails (use the preview action).'
+description: 'Records the build a commit produced against one of your Antidote environments as a release and tests it, through the antidote CLI, so the runner needs Node 22.4 or newer with npx (actions/setup-node), on Linux or macOS. The action starts the test and exits; results appear in the dashboard. For push / schedule / workflow_dispatch: a run whose event carries a pull request fails (use the preview action).'
 author: 'Antidote'
 
 inputs:
   api-key:
-    description: 'An Antidote API key (Settings → API Keys in the dashboard). Set this or service-identity. Required with apk-path.'
+    description: 'An Antidote API key (Settings → API Keys in the dashboard). Set this or service-identity. Required with app-path.'
     required: false
     default: ''
 
@@ -48,7 +48,7 @@ inputs:
     default: ''
 
   apk-path:
-    description: 'Path to the Android build to test: one .apk file, or a directory holding exactly one .apk. When set, the action uploads it, waits until Antidote has checked it, records it as this build and explores it. Needs api-key.'
+    description: 'Path to the Android build to test: one .apk file, or a directory holding exactly one .apk. When set, the action runs `antidote upload-build`: it uploads the APK, waits until Antidote has checked it, records it as this build and tests it.'
     required: false
     default: ''
 
@@ -73,12 +73,12 @@ inputs:
     default: ''
 
   api-url:
-    description: 'The Antidote Platform URL. Only its origin is used, so the old GraphQL endpoint URL still works; with apk-path the build is uploaded to <origin>/graphql.'
+    description: 'The Antidote Platform URL. Only its origin is used, so the old GraphQL endpoint URL still works; with app-path the build is uploaded to <origin>/graphql.'
     required: false
     default: 'https://platform.getantidote.com'
 
   auth-url:
-    description: 'Deprecated and ignored, except with apk-path: the antidote CLI finds the sign-in endpoint itself. With apk-path it is the Keycloak URL the API key signs in at, derived from api-url when empty.'
+    description: 'Deprecated and ignored, except with app-path: the antidote CLI finds the sign-in endpoint itself. With app-path it is the Keycloak URL the API key signs in at, derived from api-url when empty.'
     required: false
     default: ''
 
@@ -139,7 +139,7 @@ outputs:
     description: 'The agentic execution the build started. Empty when nothing was started.'
 
   run-status:
-    description: 'triggered (an agentic execution started; see the dashboard for its results), started (Android or iOS: discovery started; no run id, see the dashboard), or skipped (nothing was started)'
+    description: 'triggered (an agentic execution started; see the dashboard for its results), started (iOS: discovery started; no run id, see the dashboard), or skipped (nothing was started)'
 
   build-warnings:
     description: 'Android and iOS only: warnings about the uploaded build (one per line). Empty without apk-path or app-path.'

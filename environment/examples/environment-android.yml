@@ -1,9 +1,10 @@
 # Android example for the duku-ai/actions/environment action: build the APK,
-# then hand it to Antidote with apk-path. Copy into .github/workflows/ in your repo
-# and adjust the Gradle task, the APK path and the product-id variable.
+# then hand it to Antidote with apk-path, which runs `antidote upload-build`.
+# Copy into .github/workflows/ in your repo and adjust the Gradle task, the APK
+# path and the product-id variable.
 #
 # The build is recorded on the product's default environment (or the one you
-# name).
+# name) and tested on the product's devices.
 
 name: Antidote Android
 
@@ -24,6 +25,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The action runs the antidote CLI, which needs Node 22.4 or newer.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -36,6 +42,10 @@ jobs:
         uses: duku-ai/actions/environment@environment/v1
         with:
           api-key: ${{ secrets.PLATFORM_API_KEY }}
+          # Or, with no stored secret, a service identity whose trust rule
+          # accepts this repository's GitHub OIDC tokens (the job then needs
+          # `id-token: write`):
+          # service-identity: svc_...
           product-id: ${{ vars.ANTIDOTE_ANDROID_PRODUCT_ID }}
           # One .apk, or a directory holding exactly one.
           apk-path: app/build/outputs/apk/release

@@ -6,9 +6,8 @@ request and get a sticky PR comment with the top errors discovered.
 > For long-lived environments (staging, prod canary, customer-specific
 > deploys), use the [`environment`](../environment) action instead.
 >
-> This action is for web products only. On an Android product it stops before
-> recording anything; test an Android build with the environment action's
-> [`apk-path`](../environment#android-builds) instead.
+> For an Android app, pass the pull request's APK as `apk-path` — see
+> [Android pull requests](#android-pull-requests).
 
 ## Requirements
 
@@ -131,6 +130,39 @@ host, so a Vercel custom domain works too. When `request-headers` or
 `request-secrets` is set the old input is ignored, with a warning: move the
 secret into `request-secrets` and remove the old input.
 
+## Android pull requests
+
+An Android product has no preview URL: its build is the APK. Build it in the
+pull request's workflow, then point `apk-path` at it — one `.apk` file, or a
+directory holding exactly one:
+
+```yaml
+- uses: duku-ai/actions/preview@preview/v1
+  with:
+    api-key: ${{ secrets.PLATFORM_API_KEY }}
+    product-id: ${{ vars.ANTIDOTE_ANDROID_PRODUCT_ID }}
+    apk-path: app/build/outputs/apk/debug
+```
+
+The action runs `antidote upload-build` with the pull request's number, head,
+branch, title and run link. The CLI uploads the APK, waits until Antidote has
+checked it (at most 15 minutes) and records it as the pull request's build.
+Antidote then tests it as it tests a web pull request: on the product's primary
+device, with the sticky comment and the check on the pull request. `run-id`
+names the agentic pull request test.
+
+- **Pull requests only.** A push with no pull request fails the step: record
+  a pushed Android build with the environment action's
+  [`apk-path`](../environment#android-builds).
+- **No preview URL.** `exploration-url`, `wait-for-target-seconds`,
+  `request-headers`, `request-secrets` and `vercel-automation-bypass-secret`
+  fail the step with `apk-path`, and the preview URL resolvers are not run.
+- **Release name.** The APK's version, `versionName (versionCode)`; an
+  explicit `release-label` wins. It is the `target-version` output.
+- **Refused builds and warnings** are the environment action's: see
+  [Android builds](../environment#android-builds). Each warning is shown on
+  the step and set as the `build-warnings` output.
+
 ## Behavior
 
 **Async by design.** On `pull_request` events the action resolves the
@@ -206,6 +238,7 @@ commit as the pull request's.
 | `vercel-automation-bypass-secret` | No | *(empty)* | **Deprecated.** The Vercel Deployment Protection bypass secret, sent as `x-vercel-protection-bypass` to the origin of the URL the run explores. Ignored when `request-headers` or `request-secrets` is set. |
 | `repository` | No | — | `owner/repo` of the pull request to test on a **non-`pull_request`** trigger (set together with `pr-number`, and needs `github-token`). Runs the PR flow. |
 | `pr-number` | No | — | PR number to attach to on a non-`pull_request` trigger (set together with `repository`). |
+| `apk-path` | No | — | A pull request's Android build: one `.apk` file, or a directory holding exactly one. Runs `antidote upload-build`. See [Android pull requests](#android-pull-requests). |
 | `exploration-url` | No | _product base URL_ | Override the URL to explore. If unset and on a PR, the preview URL resolvers run; otherwise falls back to the product's base URL. When set, no `github-token` is required. |
 | `preview-url-source` | No | `auto` | Preview URL resolver on `pull_request`. One of `auto`, `deployments`, `checks`, `statuses`, `comments`, `none`. `auto` runs only the sha-keyed resolvers (deployments → checks → statuses) and never reads PR comments. |
 | `preview-timeout-seconds` | No | `60` | How long to wait for the preview URL to appear (polling-based resolvers like comments). |
@@ -233,6 +266,7 @@ commit as the pull request's.
 | `exploration-batch-id` | **Deprecated:** always empty. |
 | `comment-id` | **Deprecated:** always empty. The comment is posted server-side by the Antidote Bot GitHub App. |
 | `preview-url-source` | How the preview URL was found: `deployments`, `checks`, `statuses`, `comments`, or `override` when `exploration-url` was set. Empty when no URL was sent. |
+| `build-warnings` | `apk-path` only: warnings about the uploaded APK, one per line. |
 
 ## Permissions
 
@@ -331,6 +365,7 @@ Opt in explicitly if you want it anyway:
 ## Examples
 
 - [`examples/preview-pull-request.yml`](./examples/preview-pull-request.yml) — minimal `pull_request` workflow
+- [`examples/preview-android.yml`](./examples/preview-android.yml) — build a pull request's APK and test it
 
 ## Troubleshooting
 
