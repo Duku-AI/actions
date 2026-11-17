@@ -22,7 +22,7 @@ settings → Environments; the action names it.
 From `1.0.0` (listed under Unreleased in the [CHANGELOG](./CHANGELOG.md), shown
 below as `vNEXT`), the action records a web build through the
 [antidote CLI](../../apps/cli/duku/README.md)
-(`npx --yes @getantidote/cli@2 record-release`), as Antidote's GitLab component
+(`npx --yes @getantidote/cli@3 record-release`), as Antidote's GitLab component
 does. So for a web build the runner needs:
 
 - **Node 22.4 or newer, with `npx`**: the CLI's minimum (`engines` in its

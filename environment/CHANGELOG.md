@@ -8,7 +8,7 @@ This is `1.0.0`: the action now records a web build through the antidote CLI.
 
 - **Runs `antidote record-release`.** The action reads GitHub's context as
   before (the commit, its parent, the branch, the release label, `commit`),
-  then runs `npx --yes @getantidote/cli@2 record-release` and copies its result
+  then runs `npx --yes @getantidote/cli@3 record-release` and copies its result
   into the outputs, as Antidote's GitLab component does. The server finds the
   environment, records the build and starts its agentic execution, so GitHub
   and GitLab get the same fixes at once.

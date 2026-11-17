@@ -15,7 +15,7 @@ request and get a sticky PR comment with the top errors discovered.
 This action is **pre-release** (`0.x`). The next release, `1.0.0` (listed
 under Unreleased in the [CHANGELOG](./CHANGELOG.md), shown below as `vNEXT`),
 records the build through the [antidote CLI](../../apps/cli/duku/README.md)
-(`npx --yes @getantidote/cli@2 record-preview`), as Antidote's GitLab component
+(`npx --yes @getantidote/cli@3 record-preview`), as Antidote's GitLab component
 does. So the runner needs:
 
 - **Node 22.4 or newer, with `npx`**: the CLI's minimum (`engines` in its

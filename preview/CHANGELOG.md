@@ -8,7 +8,7 @@ This is `1.0.0`: the action now records the build through the antidote CLI.
 
 - **Runs `antidote record-preview`.** The action reads GitHub's context as
   before (the pull request, its head, the preview URL), then runs
-  `npx --yes @getantidote/cli@2 record-preview` and copies its result into the
+  `npx --yes @getantidote/cli@3 record-preview` and copies its result into the
   outputs, as Antidote's GitLab component does. The server records the build and
   starts the test, so GitHub and GitLab get the same fixes at once.
 - **BREAKING CHANGE:** the runner needs Node 22.4 or newer with `npx` (the
