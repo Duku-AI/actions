@@ -4,12 +4,12 @@ author: 'Antidote'
 
 inputs:
   api-key:
-    description: 'An Antidote API key (Settings → API Keys in the dashboard). Set this or service-identity. Required with app-path.'
+    description: 'An Antidote API key (Settings → API Keys in the dashboard). Optional: with neither this nor service-identity, a job granted `permissions: id-token: write` signs in as the managed identity of your linked Antidote GitHub App installation. Required with app-path.'
     required: false
     default: ''
 
   service-identity:
-    description: "A service identity's id (svc_…) to sign in with the job's GitHub OIDC token, so no secret is stored. The job needs `permissions: id-token: write`. Set this or api-key."
+    description: "A service identity's id (svc_…) to sign in with the job's GitHub OIDC token, so no secret is stored. The job needs `permissions: id-token: write`. Not with api-key."
     required: false
     default: ''
 
@@ -98,9 +98,9 @@ inputs:
     default: ''
 
   github-token:
-    description: 'GitHub token, used only to look the `commit` input up (needs contents: read). Falls back to GITHUB_TOKEN from env if unset.'
+    description: "GitHub token, used only to look the `commit` input up (needs contents: read). Defaults to the job's token."
     required: false
-    default: ''
+    default: ${{ github.token }}
 
   run-exploration:
     description: 'Start an exploration run. Set false to record the build without one.'

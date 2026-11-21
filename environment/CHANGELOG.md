@@ -4,6 +4,16 @@ All notable changes to the `environment` action will be documented in this file.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-21
+
+### Added
+
+- **Sign in with the managed identity.** With neither `api-key` nor
+  `service-identity`, a job granted `permissions: id-token: write` signs in as
+  the managed identity of your organisation's linked Antidote GitHub App
+  installation: nothing to store and no id to name. `app-path` still needs
+  `api-key`.
+
 ### Changed
 
 - **`apk-path` runs `antidote upload-build`.** The action runs
@@ -13,11 +23,14 @@ All notable changes to the `environment` action will be documented in this file.
   product's devices as it tests a web build: `run-id` names its agentic
   execution, `run-status` reads `triggered`, and a push records landings.
   `apk-path` still cannot be combined with `wait-for-deployment`.
-- **`apk-path` signs in like a web build**, with `api-key` or
-  `service-identity`. Only `app-path` (iOS) still needs `api-key`, and only
-  there does `auth-url` name where the key signs in.
+- **`apk-path` signs in like a web build**, with `api-key`, `service-identity`
+  or the managed identity. Only `app-path` (iOS) still needs `api-key`, and
+  only there does `auth-url` name where the key signs in.
 - **An Android build needs Node 22.4 or newer with `npx`** on the runner, as a
   web build does (the CLI's minimum).
+- **`github-token` defaults to the job's token**, so the `commit` input is
+  looked up without passing one. The action no longer reads a `GITHUB_TOKEN`
+  variable from the job's environment.
 
 ## [1.0.0] - 2026-11-17
 

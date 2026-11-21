@@ -90,6 +90,28 @@ build, so a nightly sweep against a branch that has already been pushed reuses
 that push's build rather than minting a SHA-less duplicate. With one, the label
 is the build — see below.
 
+### Sign in with your GitHub App installation (nothing to store or name)
+
+If the [Antidote Bot GitHub App](https://github.com/apps/antidote-bot) is
+installed on the repository and its installation is linked in the dashboard →
+Settings → Integrations, the job needs no key and no id. Leave out `api-key`
+and `service-identity` and let the job request a token; Antidote works out
+which organisation it is from the repository the token names:
+
+```yaml
+permissions:
+  contents: read
+  id-token: write          # the job's OIDC token, exchanged for an Antidote session
+
+- uses: duku-ai/actions/environment@environment/v1
+  with:
+    product-id: ${{ vars.ANTIDOTE_PRODUCT_ID }}
+    environment: staging
+```
+
+The job log says when it signs in this way. An Android build (`apk-path`)
+signs in this way too; an iOS build (`app-path`) still needs `api-key`.
+
 ### Sign in with a service identity (no stored secret)
 
 The action can sign in with the job's GitHub OIDC token instead
@@ -109,8 +131,10 @@ permissions:
     environment: staging
 ```
 
-Set `api-key` or `service-identity`, not both. Both work for an Android build
-(`apk-path`) too.
+Set `api-key` or `service-identity`, not both; with neither, the job signs in
+as your GitHub App installation's managed identity (above). All three work
+for an Android build (`apk-path`) too; an iOS build (`app-path`) still needs
+`api-key`.
 
 ## Nightly runs against a release you name
 
@@ -356,17 +380,16 @@ Terminal results appear in the dashboard.
 
 ## Inputs
 
-> **Signing in without a stored secret.** This action requires `api-key` or
-> `service-identity`; it doesn't use the GitHub App installation's managed
-> identity. A plain CLI job running the `antidote` CLI 3.0.0 or later
-> needs neither: grant it `permissions: id-token: write`, with the Antidote Bot
-> GitHub App installed on the repository and its installation linked in
+> **Signing in without a stored secret or an id.** With neither `api-key` nor
+> `service-identity`, a job granted `permissions: id-token: write` signs in as
+> the managed identity of your organisation's GitHub App installation: install
+> the Antidote Bot GitHub App on the repository and link its installation in
 > the dashboard → Settings → Integrations.
 
 | Name | Required | Default | Description |
 |------|----------|---------|-------------|
-| `api-key` | One of the two | — | Antidote Platform API key. Generate in the dashboard → Settings → API Keys. Required with `app-path`. |
-| `service-identity` | One of the two | — | A service identity's id (`svc_…`) to sign in with the job's GitHub OIDC token. The job needs `permissions: id-token: write`. |
+| `api-key` | No | — | Antidote Platform API key. Generate in the dashboard → Settings → API Keys. Required with `app-path`. |
+| `service-identity` | No | — | A service identity's id (`svc_…`) to sign in with the job's GitHub OIDC token. The job needs `permissions: id-token: write`. |
 | `oidc-audience` | No | _Platform origin_ | The GitHub OIDC token's audience, only with `service-identity`. |
 | `product-id` | Yes | — | Antidote product ID (the dashboard → Products). |
 | `environment` | No | _product default_ | Name of an environment declared on that product, e.g. `staging`. When empty, the run lands on the product's default environment (new products are born with a `production` endpoint). |
@@ -380,7 +403,7 @@ Terminal results appear in the dashboard.
 | `wait-for-deployment-interval-seconds` | No | `10` (the CLI's) | Delay between deployment polls. Must be a positive integer. |
 | `wait-commit-header` | No | `x-commit-sha` (the CLI's) | Response header the app exposes its deployed commit hash on (case-insensitive; full SHA or 7-char short form). |
 | `wait-commit-path` | No | `/` (the CLI's) | Path appended to the environment URL on each poll (e.g. `/api/health`). |
-| `github-token` | No | *(empty)* | Used only to look the `commit` input up. Falls back to the `GITHUB_TOKEN` env. |
+| `github-token` | No | the job's token | Used only to look the `commit` input up. |
 | `apk-path` | No | — | Android: one `.apk` file, or a directory holding exactly one. Runs `antidote upload-build`: uploads it, waits until Antidote has checked it, records it as this build and tests it. See [Android builds](#android-builds). |
 | `app-path` | No | — | iOS: one simulator `.app.zip` file, or a directory holding exactly one. Uploads it, waits until Antidote has checked it, records it as this build and explores it. Needs `api-key`; not with `apk-path`. See [iOS builds](#ios-builds). |
 | `api-url` | No | `https://platform.getantidote.com` | The Antidote Platform URL. Only its origin is used; with `app-path` the build is uploaded to `<origin>/graphql`. |

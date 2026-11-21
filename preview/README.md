@@ -43,6 +43,27 @@ permissions:
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
 ```
 
+### Sign in with your GitHub App installation (nothing to store or name)
+
+If the [Antidote Bot GitHub App](https://github.com/apps/antidote-bot) is
+installed on the repository and its installation is linked in the dashboard →
+Settings → Integrations, the job needs no key and no id. Leave out `api-key`
+and `service-identity` and let the job request a token; Antidote works out
+which organisation it is from the repository the token names:
+
+```yaml
+permissions:
+  contents: read
+  deployments: read
+  id-token: write          # the job's OIDC token, exchanged for an Antidote session
+
+- uses: duku-ai/actions/preview@preview/v1
+  with:
+    product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
+```
+
+The job log says when it signs in this way.
+
 ### Sign in with a service identity (no stored secret)
 
 The action can sign in with the job's GitHub OIDC token instead
@@ -63,7 +84,9 @@ permissions:
     product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
 ```
 
-Set `api-key` or `service-identity`, not both. `oidc-audience` sets the
+Set `api-key` or `service-identity`, not both; with neither, the job signs in
+as your GitHub App installation's managed identity (above).
+`oidc-audience` sets the
 token's audience when the trust rule expects another one; by default it is the
 Platform's origin, which is what a trust rule made in the dashboard expects.
 
@@ -217,17 +240,16 @@ commit as the pull request's.
 
 ## Inputs
 
-> **Signing in without a stored secret.** This action requires `api-key` or
-> `service-identity`; it doesn't use the GitHub App installation's managed
-> identity. A plain CLI job running the `antidote` CLI 3.0.0 or later
-> needs neither: grant it `permissions: id-token: write`, with the Antidote Bot
-> GitHub App installed on the repository and its installation linked in
+> **Signing in without a stored secret or an id.** With neither `api-key` nor
+> `service-identity`, a job granted `permissions: id-token: write` signs in as
+> the managed identity of your organisation's GitHub App installation: install
+> the Antidote Bot GitHub App on the repository and link its installation in
 > the dashboard → Settings → Integrations.
 
 | Name | Required | Default | Description |
 |------|----------|---------|-------------|
-| `api-key` | One of the two | — | Antidote Platform API key. Generate in the dashboard → Settings → API Keys. |
-| `service-identity` | One of the two | — | A service identity's id (`svc_…`) to sign in with the job's GitHub OIDC token. The job needs `permissions: id-token: write`. See [Sign in with a service identity](#sign-in-with-a-service-identity-no-stored-secret). |
+| `api-key` | No | — | Antidote Platform API key. Generate in the dashboard → Settings → API Keys. |
+| `service-identity` | No | — | A service identity's id (`svc_…`) to sign in with the job's GitHub OIDC token. The job needs `permissions: id-token: write`. See [Sign in with a service identity](#sign-in-with-a-service-identity-no-stored-secret). |
 | `oidc-audience` | No | _Platform origin_ | The GitHub OIDC token's audience, only with `service-identity`. |
 | `product-id` | Yes | — | Antidote product ID (from the dashboard → Products). |
 | `run-exploration` | No | `true` | Start an exploration after registering the build. Set to `false` to register the build only. |
@@ -250,7 +272,7 @@ commit as the pull request's.
 | `preview-url-regex` | No | *(empty)* | Regex to extract the preview URL from provider text (Comments resolver). Defaults to a generic `http(s)` heuristic. |
 | `wait-for-target-seconds` | No | *(empty)* | Seconds to let the platform wait for the resolved URL to actually **serve** before dispatching. The resolvers above only prove a URL was *published*; a preview that loses the race with its own deploy is still cold when the run fires. Empty dispatches immediately, as before. The platform caps the window and warns in the step log if it shortens your request. |
 | `credential-set` | No | *(empty)* | The credential set to log in with, by name or ID, from this product's sets. An unknown set fails the step; it never falls back to the default. Empty uses the product's default login. Ignored when `run-exploration` is false. |
-| `github-token` | No | *(empty)* | Token used to resolve the preview URL from GitHub APIs (Deployments / Checks / Statuses / comments), and to read the pull request's head with `repository` + `pr-number`. Falls back to the `GITHUB_TOKEN` env. Not required on a `pull_request` run when `exploration-url` is supplied. |
+| `github-token` | No | the job's token | Token used to resolve the preview URL from GitHub APIs (Deployments / Checks / Statuses / comments), and to read the pull request's head with `repository` + `pr-number`. Not required on a `pull_request` run when `exploration-url` is supplied. |
 | `github-installation-id` | No | — | **Deprecated, ignored.** The Platform finds the Antidote Bot GitHub App installation itself. |
 | `auth-url` | No | — | **Deprecated, ignored.** The antidote CLI finds the sign-in endpoint itself. |
 
@@ -278,7 +300,7 @@ permissions:
   checks: read              # Checks resolver (if used)
   statuses: read            # Statuses resolver (if used)
   issues: read              # PR comments resolver (if used)
-  id-token: write           # only with service-identity
+  id-token: write           # with service-identity, or to sign in as the managed identity
 ```
 
 The **workflow token needs no additional scopes for the check run** — it
@@ -370,7 +392,7 @@ Opt in explicitly if you want it anyway:
 ## Troubleshooting
 
 **Action not found.** Confirm you're pinning a tag that exists, e.g.
-`duku-ai/actions/preview@preview/v1.0.0`. The floating major
+`duku-ai/actions/preview@preview/v1.1.0`. The floating major
 (`preview/v1`) follows the newest stable `1.x` release.
 
 **API connection fails.** Verify `api-url` is reachable from GitHub

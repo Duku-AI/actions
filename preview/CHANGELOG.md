@@ -4,6 +4,8 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-21
+
 ### Added
 
 - **Test a pull request's Android build with `apk-path`.** Point it at one
@@ -18,6 +20,17 @@ All notable changes to the `preview` action will be documented in this file.
   `wait-for-target-seconds`, `request-headers`, `request-secrets`,
   `vercel-automation-bypass-secret`). Without `apk-path` an Android product is
   still refused by the Platform before anything is recorded.
+- **Sign in with the managed identity.** With neither `api-key` nor
+  `service-identity`, a job granted `permissions: id-token: write` signs in as
+  the managed identity of your organisation's linked Antidote GitHub App
+  installation: nothing to store and no id to name.
+
+### Changed
+
+- **`github-token` defaults to the job's token.** The preview URL is found on
+  a pull request without passing one; before, a run that set neither it nor
+  `exploration-url` failed. The action no longer reads a `GITHUB_TOKEN`
+  variable from the job's environment.
 
 ## [1.0.0] - 2026-11-17
 

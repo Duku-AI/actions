@@ -9,12 +9,12 @@ inputs:
     default: 'https://platform.getantidote.com'
 
   api-key:
-    description: 'An Antidote API key (Settings > API Keys in the dashboard). Set this or service-identity.'
+    description: 'An Antidote API key (Settings > API Keys in the dashboard). Optional: with neither this nor service-identity, a job granted `permissions: id-token: write` signs in as the managed identity of your linked Antidote GitHub App installation.'
     required: false
     default: ''
 
   service-identity:
-    description: "A service identity's id (svc_…) to sign in with the job's GitHub OIDC token, so no secret is stored. The job needs `permissions: id-token: write`. Set this or api-key."
+    description: "A service identity's id (svc_…) to sign in with the job's GitHub OIDC token, so no secret is stored. The job needs `permissions: id-token: write`. Not with api-key."
     required: false
     default: ''
 
@@ -139,9 +139,9 @@ inputs:
     default: ''
 
   github-token:
-    description: "GitHub token used to resolve the preview URL via GitHub APIs, and to read the pull request's head with repository + pr-number (defaults to GITHUB_TOKEN env). Not required on a pull_request run when exploration-url is provided."
+    description: "GitHub token used to resolve the preview URL via GitHub APIs, and to read the pull request's head with repository + pr-number (defaults to the job's token). Not required on a pull_request run when exploration-url is provided."
     required: false
-    default: ''
+    default: ${{ github.token }}
 
 outputs:
   target-id:

@@ -26,7 +26,7 @@ jobs:
     permissions:
       contents: read
       deployments: read      # required for preview URL resolution
-      id-token: write        # only with service-identity
+      id-token: write        # with service-identity, or to sign in as the managed identity
     steps:
       # From 1.0.0 the action runs the antidote CLI, which needs Node 22.4 or newer.
       - uses: actions/setup-node@v4
