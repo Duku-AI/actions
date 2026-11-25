@@ -63,7 +63,7 @@ inputs:
     default: ''
 
   apk-path:
-    description: "A pull request's Android build: one .apk file, or a directory holding exactly one. When set, the action runs `antidote upload-build`: it uploads the APK, waits until Antidote has checked it, records it as the pull request's build and tests it on the product's primary device. Needs a pull request (a push fails the step) and cannot be combined with exploration-url, wait-for-target-seconds, request-headers, request-secrets or vercel-automation-bypass-secret."
+    description: "A pull request's Android build: one .apk file, or a directory holding exactly one. When set, the action runs `antidote upload-build`: it uploads the APK, waits until Antidote has checked it and records it as the pull request's build; a comment mentioning @antidoteapp, or pr-tests: first_revision for the pull request's first build, tests it on the product's primary device. Needs a pull request (a push fails the step) and cannot be combined with exploration-url, wait-for-target-seconds, request-headers, request-secrets or vercel-automation-bypass-secret."
     required: false
     default: ''
 
@@ -115,6 +115,11 @@ inputs:
 
   wait-for-target-seconds:
     description: "Seconds to let the platform wait for the preview URL to actually serve before it dispatches. The preview-url resolvers above only prove a URL was published; a preview that loses the race with its own deploy is still cold when the run fires. Empty (default) dispatches immediately, exactly as before."
+    required: false
+    default: ''
+
+  pr-tests:
+    description: "How pull requests are tested: 'mention' (the default) waits for a comment mentioning @antidoteapp; 'first_revision' also tests each pull request's first build automatically, unless it is a draft, and later pushes wait for a mention. Add ready_for_review to the workflow's pull_request types, so a draft is tested once it is marked ready."
     required: false
     default: ''
 

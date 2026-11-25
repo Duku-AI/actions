@@ -3,16 +3,19 @@
 # to match your setup.
 #
 # On a PR the action resolves the preview URL from GitHub, records the build
-# through the antidote CLI, starts Antidote's test of the pull request and exits in
-# seconds. The Platform posts the results on the pull request through the
-# Antidote Bot GitHub App; install it on the repo:
+# through the antidote CLI and exits in seconds. Antidote tests it when someone
+# mentions @antidoteapp on the pull request, or, with pr-tests: first_revision,
+# the pull request's first build automatically. The results are posted on the
+# pull request through the Antidote Bot GitHub App; install it on the repo:
 # https://github.com/apps/antidote-bot
 
 name: Antidote preview
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    # ready_for_review records a draft's build again once it is marked ready, so
+    # pr-tests: first_revision tests it then.
+    types: [opened, synchronize, reopened, ready_for_review]
 
 concurrency:
   group: antidote-preview-${{ github.event.pull_request.number }}
@@ -39,6 +42,8 @@ jobs:
           # accepts this repository's GitHub OIDC tokens:
           # service-identity: svc_...
           product-id: ${{ vars.PLATFORM_PRODUCT_ID }}
+          # Optional: test each pull request's first build without a mention.
+          # pr-tests: first_revision
           # Optional: headers for a protected preview, here Vercel Deployment
           # Protection. Secret parts go in request-secrets, masked in the log.
           # request-headers: |

@@ -3,15 +3,18 @@
 # `antidote upload-build`. Copy into .github/workflows/ in your repo and adjust
 # the Gradle task, the APK path and the product-id variable.
 #
-# Antidote tests the APK on the product's primary device and posts the results on
-# the pull request through the Antidote Bot GitHub App; install it on the repo:
+# Antidote tests the APK when someone mentions @antidoteapp on the pull request, or,
+# with pr-tests: first_revision, the pull request's first build automatically, and
+# posts the results there through the Antidote Bot GitHub App; install it on the repo:
 # https://github.com/apps/antidote-bot
 
 name: Antidote Android preview
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    # ready_for_review records a draft's build again once it is marked ready, so
+    # pr-tests: first_revision tests it then.
+    types: [opened, synchronize, reopened, ready_for_review]
 
 concurrency:
   group: antidote-android-preview-${{ github.event.pull_request.number }}
@@ -49,6 +52,8 @@ jobs:
           product-id: ${{ vars.ANTIDOTE_ANDROID_PRODUCT_ID }}
           # One .apk, or a directory holding exactly one.
           apk-path: app/build/outputs/apk/debug
+          # Optional: test each pull request's first build without a mention.
+          # pr-tests: first_revision
 
       - if: steps.antidote.outputs.build-warnings != ''
         run: echo "Antidote flagged this build:" && echo "${{ steps.antidote.outputs.build-warnings }}"

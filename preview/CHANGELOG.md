@@ -4,6 +4,14 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Test a pull request's first build automatically with `pr-tests`.**
+  `first_revision` tests each pull request's first build without an
+  `@antidoteapp` mention, unless it is a draft; later pushes wait for a
+  mention. `mention`, the default, waits for one every time. The examples now
+  run on `ready_for_review` too, so a draft is tested once it is marked ready.
+
 ## [1.1.0] - 2026-11-21
 
 ### Added
