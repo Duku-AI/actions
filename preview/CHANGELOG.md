@@ -4,6 +4,8 @@ All notable changes to the `preview` action will be documented in this file.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-27
+
 ### Added
 
 - **Test a pull request's first build automatically with `pr-tests`.**
@@ -11,6 +13,13 @@ All notable changes to the `preview` action will be documented in this file.
   `@antidoteapp` mention, unless it is a draft; later pushes wait for a
   mention. `mention`, the default, waits for one every time. The examples now
   run on `ready_for_review` too, so a draft is tested once it is marked ready.
+
+### Changed
+
+- **An `apk-path` build waits for a mention.** The APK is recorded as the pull
+  request's build and tested when someone mentions `@antidoteapp`, as a web
+  preview is, or automatically with `pr-tests: first_revision`. Before, every
+  upload started a test.
 
 ## [1.1.0] - 2026-11-21
 

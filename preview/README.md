@@ -393,7 +393,7 @@ Opt in explicitly if you want it anyway:
 ## Troubleshooting
 
 **Action not found.** Confirm you're pinning a tag that exists, e.g.
-`duku-ai/actions/preview@preview/v1.1.0`. The floating major
+`duku-ai/actions/preview@preview/v1.2.0`. The floating major
 (`preview/v1`) follows the newest stable `1.x` release.
 
 **API connection fails.** Verify `api-url` is reachable from GitHub
